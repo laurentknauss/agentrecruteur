@@ -4,7 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an AI Recruiter Agency built using Node.js backend with GPT-5 integration and a Next.js 15 frontend. The project uses an orchestrator-worker architecture for comprehensive resume analysis including PDF extraction, text structuring, skills analysis, experience evaluation, and candidate screening.
+This is an AI Recruiter Agency built specifically for the **French recruitment market** using Node.js backend with GPT-4.1 integration and a Next.js 15 frontend. The project uses an orchestrator-worker architecture for comprehensive resume analysis including PDF extraction, text structuring, skills analysis, experience evaluation, and candidate screening.
+
+### French Market Specifications
+- **Target Market**: French recruitment agencies and HR departments
+- **CV Format**: French CV standards (includes personal information like age, marital status, children, nationality)
+- **Language**: French interface and interactions by default
+- **Compliance**: GDPR European regulations for personal data handling
+- **Localization**: French postal codes, cities, educational institutions (Universities, Écoles de Commerce, BTS, etc.)
+- **Cultural Adaptation**: Different from US resume format - includes personal details that are standard in French recruitment
 
 ## Commands
 
@@ -45,15 +53,17 @@ The project follows a **production-ready orchestrator-worker pattern** with the 
 ### Backend Technologies
 - **ES Modules**: `"type": "module"` in package.json
 - **PDF Processing**: Using `pdf2json` library for robust PDF text extraction (replaced pdf-parse)
-- **LLM Client**: GPT-5 via Replicate API with structured JSON output
+- **LLM Client**: GPT-4.1 via Replicate API with structured JSON output (switched from GPT-5)
 - **Pipeline Architecture**: Sequential LangChain RunnableSequence with error handling
+- **REST API**: Express TypeScript server with /api/upload-cv and /api/candidate/:id/ask endpoints
+- **Storage**: In-memory CandidateStore for MVP (CandidateProfile persistence)
 
-### Frontend Technologies (To be implemented)
+### Frontend Technologies (Implemented)
 - **Framework**: Next.js 15 with App Router
-- **UI/UX**: Tailwind CSS + shadcn/ui components
-- **State Management**: Zustand + React Query
-- **Visualizations**: Recharts for interactive charts and graphs
-- **Real-time Updates**: Server-Sent Events for progress streaming
+- **UI/UX**: Tailwind CSS with Aceternity UI components
+- **File Upload**: React Dropzone with Motion/Framer Motion animations
+- **State Management**: React hooks for local state management
+- **Development**: Concurrently for frontend (3000) + backend (3001) workflow
 
 ## Orchestrator-Worker Pipeline
 
@@ -162,16 +172,28 @@ The project follows a **production-ready orchestrator-worker pattern** with the 
 - **Testing**: Use `node testOrchestrator.js` for complete pipeline testing
 - **Frontend**: Next.js implementation planned with recruiter-focused UI/UX
 - **Storage**: Abstracted for easy dev/prod migration (local → Supabase)
+- **French CV Testing**: Sample CV available (`Sophie_Martin_Marketing.pdf`) with typical French resume information including age (28), marital status (married), children (1 child), for realistic testing of Q&A functionality
 
 ## Recent Improvements
 
 ### ✅ Completed
-- **StructuringWorker**: GPT-5 powered text → JSON structuring
+- **StructuringWorker**: GPT-4.1 powered text → JSON structuring (fixed JSON parsing issues)
 - **Enhanced Orchestrator**: Integrated structuring into extraction worker
 - **Robust PDF Processing**: Migrated from pdf-parse to pdf2json
 - **Complete Pipeline**: All workers communicate via structured data
+- **MVP Backend**: Express TypeScript API with /api/upload-cv and /api/candidate/:id/ask endpoints
+- **In-Memory Storage**: CandidateStore with full CRUD operations for candidate profiles
+- **Next.js 15 Frontend**: Complete recruiter interface with drag-and-drop PDF upload
+- **Concurrently Setup**: Frontend (3000) + Backend (3001) development workflow
+- **End-to-End Testing**: Playwright automated testing of full upload → analysis → Q&A flow
+- **Aceternity UI Integration**: Sleek file upload component with Motion animations
+- **Modern UI Components**: FileUpload.tsx with React Dropzone and Tailwind styling
 
 ### 🚧 In Progress
-- **Next.js 15 Frontend**: Recruiter interface with real-time progress
-- **Storage Abstraction**: Local → Supabase migration strategy
-- **API Integration**: Frontend ↔ Backend communication layer
+- **Component Integration**: Finalizing Aceternity FileUpload in CandidateQAContainer
+- **Storage Abstraction**: Local → Supabase migration strategy for production
+
+### 🎯 Next Phase
+- **SQLite Persistence**: Replace in-memory storage with local database
+- **Multi-Session Support**: Handle multiple recruiters and candidate histories
+- **Advanced Analytics**: Enhanced resume scoring and comparison features

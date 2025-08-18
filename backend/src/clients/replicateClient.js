@@ -25,11 +25,11 @@ export default function createReplicateClient() {
   }
 }
 
-// Helper function to run OpenAI GPT-5 through Replicate
+// Helper function to run OpenAI GPT-4.1 through Replicate
 export async function runGPT5Model(client, input, systemPrompt = "", reasoningEffort = "medium", maxTokens = 4096) {
   try {
     const output = await client.run(
-      "openai/gpt-5",
+      "openai/gpt-4.1",
       {
         input: {
           prompt: input,
