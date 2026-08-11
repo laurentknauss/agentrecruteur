@@ -1,5 +1,5 @@
-// StructuringWorker - Transforms raw resume text into structured JSON using GPT-5
-import createReplicateClient, { runGPT5Model } from '../clients/replicateClient.js';
+// StructuringWorker - Transforms raw resume text into structured JSON using GPT-5.5
+import createOpenAIClient, { runGPT5Model } from '../clients/openaiClient.js';
 
 /**
  * Resume Structure Schema
@@ -51,7 +51,7 @@ export async function structureResumeText(resumeText, jobDescription = null) {
     }
 
     // Initialize GPT-5 client
-    const client = createReplicateClient();
+    const client = createOpenAIClient();
 
     // System prompt with strict JSON instructions
     const systemPrompt = `You are an expert resume parser. Your ONLY task is to extract information from raw resume text and return it as valid JSON.

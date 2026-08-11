@@ -4,9 +4,8 @@ import React, { useState, useCallback } from 'react';
 import { FileUpload } from './FileUpload';
 import { CardSpotlight } from './CardSpotlight';
 import { GridPattern } from './GridPattern';
-import SparklesCore from './SparklesCore';
 import { motion, AnimatePresence } from 'motion/react';
-import { IconUser, IconBriefcase, IconSchool, IconLanguage, IconStar, IconMessageCircle, IconSparkles, IconBrain, IconTrendingUp } from '@tabler/icons-react';
+import { IconUser, IconBriefcase, IconStar, IconMessageCircle, IconSparkles, IconBrain, IconTrendingUp } from '@tabler/icons-react';
 
 interface StructuredResume {
   name: string | null;
@@ -162,36 +161,14 @@ function CandidateQAContainer() {
   }, [candidateId, question]);
 
   return (
-    <div className="min-h-screen bg-neutral-950 relative overflow-hidden">
+    <div className="relative overflow-hidden bg-transparent py-16">
       {/* Background Effects */}
       <div className="absolute inset-0">
         <GridPattern className="opacity-20" />
-        <SparklesCore
-          background="transparent"
-          minSize={0.6}
-          maxSize={1.4}
-          particleDensity={1200}
-          particleColor="#FFFFFF"
-        />
       </div>
 
       {/* Main Content */}
       <div className="relative z-10 max-w-7xl mx-auto p-6 px-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
-            CV Inspector
-          </h1>
-          <p className="text-xl text-neutral-300 max-w-2xl mx-auto">
-            Assistant IA pour l'élagage et l'analyse préliminaire des candidatures
-          </p>
-        </motion.div>
-
         {/* Upload Section */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -252,7 +229,7 @@ function CandidateQAContainer() {
               data-testid="instructions"
             >
               <p className="text-lg">
-                Déposez votre CV pour commencer l'analyse intelligente
+                Déposez votre CV pour commencer l&apos;analyse intelligente
               </p>
             </motion.div>
           )}
@@ -351,7 +328,7 @@ function CandidateQAContainer() {
                   <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
                     <IconMessageCircle className="w-6 h-6 text-white" />
                   </div>
-                  <h2 className="text-2xl font-bold text-white">Conversation IA</h2>
+                  <h2 className="text-2xl font-bold text-white">Conversation candidat</h2>
                 </div>
 
                 <form onSubmit={handleQuestionSubmit} className="mb-8">
@@ -361,7 +338,7 @@ function CandidateQAContainer() {
                       value={question}
                       onChange={(e) => setQuestion(e.target.value)}
                       placeholder="Posez votre question sur le candidat..."
-                      className="flex-1 px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-neutral-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                      className="flex-1 px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-neutral-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                       disabled={isAsking}
                       data-testid="question-input"
                     />
@@ -397,7 +374,7 @@ function CandidateQAContainer() {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 20 }}
                           transition={{ delay: idx * 0.1 }}
-                          className="bg-neutral-800/50 border border-neutral-700 rounded-xl p-6"
+                          className="bg-slate-700/50 border border-slate-600 rounded-xl p-6"
                           data-testid={`qa-item-${idx}`}
                         >
                           <div className="mb-3">
@@ -411,13 +388,13 @@ function CandidateQAContainer() {
                               </div>
                             </div>
                           </div>
-                          <div className="border-l-2 border-neutral-700 pl-6 ml-5">
+                          <div className="border-l-2 border-slate-600 pl-6 ml-5">
                             <div className="flex items-start gap-3">
                               <div className="p-2 bg-green-500/20 rounded-lg">
                                 <IconBrain className="w-4 h-4 text-green-400" />
                               </div>
                               <div>
-                                <p className="text-green-300 font-medium">Réponse IA</p>
+                                <p className="text-green-300 font-medium">Réponse</p>
                                 <p className="text-neutral-200 leading-relaxed" data-testid={`answer-${idx}`}>
                                   {qa.answer}
                                 </p>
@@ -449,7 +426,7 @@ const InfoCard = ({ icon, label, value, testId }: {
   value: string; 
   testId?: string 
 }) => (
-  <div className="flex items-center gap-3 p-3 bg-neutral-800/30 rounded-lg border border-neutral-700/50">
+  <div className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg border border-slate-600/50">
     <div className="text-neutral-400">{icon}</div>
     <div className="flex-1">
       <p className="text-xs text-neutral-400 uppercase tracking-wide">{label}</p>

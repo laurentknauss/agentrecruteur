@@ -3,7 +3,9 @@ import express from 'express';
 import multer from 'multer';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
-import { candidateStore } from './store.js';
+import { candidateStore, CandidateRepository } from './store.js';
+import { mongoCandidateStore } from './database/mongoCandidateStore.js';
+import MongoDBConnection from './database/mongodb.js';
 import { processPDFBuffer, validatePDFBuffer } from './pdf.js';
 import { answerQuestion } from './llm.js';
 import { analyzeResume } from './workers/comprehensiveResumeAnalyzer.js';
@@ -11,6 +13,19 @@ import { CandidateProfile, QARequest, UploadResponse, QAResponse, ApiError, Resu
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Storage backend: MongoDB Atlas when reachable, in-memory fallback otherwise.
+let store: CandidateRepository = candidateStore;
+
+async function initStorage(): Promise<void> {
+  try {
+    await MongoDBConnection.getInstance().connect();
+    store = mongoCandidateStore;
+    console.log('🗄️ Storage: MongoDB Atlas (persistent)');
+  } catch (error) {
+    console.warn('⚠️ MongoDB Atlas unavailable — falling back to in-memory storage:', error instanceof Error ? error.message : error);
+  }
+}
 
 // Middleware
 app.use(cors());
@@ -87,9 +102,9 @@ app.post('/api/upload-cv', upload.single('cv'), async (req, res) => {
       filename: req.file.originalname
     };
 
-    candidateStore.set(candidateId, candidate);
+    await store.set(candidateId, candidate);
 
-    console.log(`✅ Candidate ${candidateId} processed and stored`);
+    console.log(`✅ Candidate ${candidateId} processed and stored (${store.backend})`);
 
     // Return structured response
     const response: UploadResponse = {
@@ -132,7 +147,7 @@ app.post('/api/candidate/:id/ask', async (req, res) => {
       return res.status(400).json(error);
     }
 
-    const candidate = candidateStore.get(id);
+    const candidate = await store.get(id);
     if (!candidate) {
       const error: ApiError = { error: 'Candidate not found' };
       return res.status(404).json(error);
@@ -164,17 +179,17 @@ app.post('/api/candidate/:id/ask', async (req, res) => {
 /**
  * GET /api/candidates - List all stored candidates
  */
-app.get('/api/candidates', (req, res) => {
-  const candidates = candidateStore.listSummary();
+app.get('/api/candidates', async (req, res) => {
+  const candidates = await store.listSummary();
   res.json({ candidates });
 });
 
 /**
  * GET /api/candidate/:id - Get specific candidate details
  */
-app.get('/api/candidate/:id', (req, res) => {
+app.get('/api/candidate/:id', async (req, res) => {
   const { id } = req.params;
-  const candidate = candidateStore.get(id);
+  const candidate = await store.get(id);
   
   if (!candidate) {
     const error: ApiError = { error: 'Candidate not found' };
@@ -187,9 +202,9 @@ app.get('/api/candidate/:id', (req, res) => {
 /**
  * DELETE /api/candidate/:id - Remove candidate from store
  */
-app.delete('/api/candidate/:id', (req, res) => {
+app.delete('/api/candidate/:id', async (req, res) => {
   const { id } = req.params;
-  const deleted = candidateStore.delete(id);
+  const deleted = await store.delete(id);
   
   if (!deleted) {
     const error: ApiError = { error: 'Candidate not found' };
@@ -202,11 +217,12 @@ app.delete('/api/candidate/:id', (req, res) => {
 /**
  * GET /health - Health check
  */
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    candidatesCount: candidateStore.count() 
+    storage: store.backend,
+    candidatesCount: await store.count() 
   });
 });
 
@@ -220,9 +236,12 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
   res.status(500).json(apiError);
 });
 
-// Start server
+// Start server (storage initialized before listen)
+await initStorage();
+
 app.listen(PORT, () => {
   console.log(`🚀 AI Recruiter API running on http://localhost:${PORT}`);
+  console.log(`🗄️ Storage backend: ${store.backend}`);
   console.log(`📋 Endpoints:`);
   console.log(`   POST /api/upload-cv - Upload and analyze CV`);
   console.log(`   POST /api/candidate/:id/ask - Ask questions about candidate`);

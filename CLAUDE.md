@@ -38,8 +38,8 @@ The project follows a **production-ready orchestrator-worker pattern** with the 
   - `structuringWorker.js` - **NEW**: Converts raw PDF text to structured JSON using GPT-5
   - `comprehensiveResumeAnalyzer.js` - Complete resume analysis pipeline
 - **LLM Integration**: 
-  - Replicate client (`src/clients/replicateClient.js`) for GPT-5
-  - Requires `REPLICATE_API_TOKEN` environment variable
+  - OpenAI client (`src/clients/openaiClient.js`) for GPT-5.5 (Responses API)
+  - Requires `OPENAI_API_KEY` environment variable
 - **Utilities**: `src/utils/agentUtils.js` - PDF text extraction using pdf2json (more robust than pdf-parse)
 
 ### Frontend (Next.js 15) - Planned Implementation
@@ -53,7 +53,7 @@ The project follows a **production-ready orchestrator-worker pattern** with the 
 ### Backend Technologies
 - **ES Modules**: `"type": "module"` in package.json
 - **PDF Processing**: Using `pdf2json` library for robust PDF text extraction (replaced pdf-parse)
-- **LLM Client**: GPT-4.1 via Replicate API with structured JSON output (switched from GPT-5)
+- **LLM Client**: GPT-5.5 via OpenAI Responses API with structured JSON output (client `src/clients/openaiClient.js`, model overridable via `GPT_MODEL`)
 - **Pipeline Architecture**: Sequential LangChain RunnableSequence with error handling
 - **REST API**: Express TypeScript server with /api/upload-cv and /api/candidate/:id/ask endpoints
 - **Storage**: In-memory CandidateStore for MVP (CandidateProfile persistence)
@@ -168,7 +168,7 @@ The project follows a **production-ready orchestrator-worker pattern** with the 
 ## Development Notes
 
 - **PDF Processing**: Using pdf2json for better handling of malformed PDFs
-- **Environment**: Requires `REPLICATE_API_TOKEN` in `.env` file
+- **Environment**: Requires `OPENAI_API_KEY` in `.env` file
 - **Testing**: Use `node testOrchestrator.js` for complete pipeline testing
 - **Frontend**: Next.js implementation planned with recruiter-focused UI/UX
 - **Storage**: Abstracted for easy dev/prod migration (local → Supabase)
@@ -176,8 +176,8 @@ The project follows a **production-ready orchestrator-worker pattern** with the 
 
 ## Recent Improvements
 
-### ✅ Completed
-- **StructuringWorker**: GPT-4.1 powered text → JSON structuring (fixed JSON parsing issues)
+### ✅ Completed - Latest Session
+- **StructuringWorker**: GPT-5.5 powered text → JSON structuring (fixed JSON parsing issues)
 - **Enhanced Orchestrator**: Integrated structuring into extraction worker
 - **Robust PDF Processing**: Migrated from pdf-parse to pdf2json
 - **Complete Pipeline**: All workers communicate via structured data
@@ -188,12 +188,37 @@ The project follows a **production-ready orchestrator-worker pattern** with the 
 - **End-to-End Testing**: Playwright automated testing of full upload → analysis → Q&A flow
 - **Aceternity UI Integration**: Sleek file upload component with Motion animations
 - **Modern UI Components**: FileUpload.tsx with React Dropzone and Tailwind styling
+- **UI Enhancements**: Increased layout width (max-w-4xl → max-w-6xl), enhanced sparkles effect (more prominent stars)
+- **Logo Positioning**: Moved logo to very left edge with clean rounded design (no borders/colors)
+- **Branding Update**: Changed "AI Recruiter" → "CV Inspector" for better role clarity as screening assistant
+- **Subtitle Update**: "Assistant IA pour l'élagage et l'analyse préliminaire des candidatures"
 
-### 🚧 In Progress
-- **Component Integration**: Finalizing Aceternity FileUpload in CandidateQAContainer
-- **Storage Abstraction**: Local → Supabase migration strategy for production
+### ✅ MongoDB Atlas Integration
+- **Database Setup**: MongoDB Atlas connection layer (singleton + mongoose 8), Candidate model with text indexes on `profile.name`/`profile.skills`
+- **Storage Abstraction**: `CandidateRepository` interface (store.ts) with two backends:
+  - `mongoCandidateStore` (database/mongoCandidateStore.ts) — persistent CRUD via Atlas
+  - in-memory fallback — automatic graceful degradation if Atlas is unreachable
+- **Storage selection**: chosen at startup (`initStorage()`); `/health` exposes the active `storage` backend
+- **⚠️ Status**: the original TestCluster has been deleted (DNS NXDOMAIN). A new Atlas cluster must be provisioned and `MONGODB_ATLAS_URI` updated in `backend/.env` to use persistent storage.
+
+### ✅ Storage Backend (completed 2026-08-11)
+- `MongoCandidateStore` implements full CRUD: `set` (upsert), `get`, `has`, `delete`, `list`, `listSummary` (projection), `count`, `clear`
+- Server endpoints migrated to async + awaited store calls
+- Typecheck green with TS 7 (tsgo) — `module: node16`, `moduleResolution: node16` (old `baseUrl`/`paths` removed)
 
 ### 🎯 Next Phase
-- **SQLite Persistence**: Replace in-memory storage with local database
-- **Multi-Session Support**: Handle multiple recruiters and candidate histories
-- **Advanced Analytics**: Enhanced resume scoring and comparison features
+- **Provision a fresh Atlas M0 cluster** and update `backend/.env` (`MONGODB_ATLAS_URI`, `MONGODB_DATABASE`)
+- **Multi-Session Support**: handle multiple recruiters and candidate histories
+- **Advanced Analytics**: enhanced resume scoring and comparison features
+
+## MongoDB Atlas Configuration
+
+**Environment Variables (in `backend/.env`, NOT committed):**
+```
+OPENAI_API_KEY="<à créer sur platform.openai.com>"
+MONGODB_ATLAS_URI="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority"
+MONGODB_DATABASE="cv-inspector"
+```
+
+**Test Results (original TestCluster, now deleted):**
+- ✅ Connection successful (2025 session) — cluster since removed, see "⚠️ Status" above

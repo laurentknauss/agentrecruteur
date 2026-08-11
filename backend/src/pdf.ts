@@ -33,7 +33,7 @@ export async function processPDFBuffer(
       throw new Error('No text could be extracted from PDF');
     }
     
-    // Step 2: Structure using existing StructuringWorker (with replicateClient)
+    // Step 2: Structure using existing StructuringWorker (GPT-5.5)
     console.log(`🏗️ Structuring resume with GPT-5...`);
     const structuredProfile = await structureResumeText(sourceText) as StructuredResume;
     

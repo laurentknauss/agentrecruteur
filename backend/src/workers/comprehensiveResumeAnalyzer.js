@@ -1,7 +1,7 @@
 // ComprehensiveResumeAnalyzer - Single worker for complete resume analysis
 // This is our "walking skeleton" - handles entire resume processing pipeline
 
-import createReplicateClient, { runGPT5Model } from '../clients/replicateClient.js';
+import createOpenAIClient, { runGPT5Model } from '../clients/openaiClient.js';
 import { extractPDFText } from '../utils/agentUtils.js';
 
 /**
@@ -42,7 +42,7 @@ export async function analyzeResume(pdfPath, jobDescription = null) {
     console.log(`✅ Extracted ${resumeText.length} characters from PDF`);
 
     // Step 2: Initialize GPT-5 client
-    const client = createReplicateClient();
+    const client = createOpenAIClient();
 
     // Step 3: Create comprehensive analysis prompt
     const systemPrompt = `You are an expert HR analyst and recruiter with 15+ years of experience. 

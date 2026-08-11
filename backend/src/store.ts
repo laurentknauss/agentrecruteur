@@ -1,23 +1,46 @@
-// In-memory storage for candidate profiles
+// Storage abstraction for candidate profiles.
+// Backends: in-memory (fallback) or MongoDB Atlas (persistent).
 import { CandidateProfile } from './types.js';
 
-class CandidateStore {
+export interface CandidateSummary {
+  id: string;
+  name: string;
+  uploadedAt: string;
+  skillsCount: number;
+  experience: string;
+}
+
+export interface CandidateRepository {
+  readonly backend: 'memory' | 'mongodb';
+  set(id: string, candidate: CandidateProfile): Promise<void>;
+  get(id: string): Promise<CandidateProfile | undefined>;
+  has(id: string): Promise<boolean>;
+  delete(id: string): Promise<boolean>;
+  list(): Promise<CandidateProfile[]>;
+  listSummary(): Promise<CandidateSummary[]>;
+  count(): Promise<number>;
+  clear(): Promise<void>;
+}
+
+// In-memory fallback (data lost on restart)
+class CandidateStore implements CandidateRepository {
+  readonly backend = 'memory' as const;
   private store = new Map<string, CandidateProfile>();
 
-  set(id: string, candidate: CandidateProfile): void {
+  async set(id: string, candidate: CandidateProfile): Promise<void> {
     this.store.set(id, candidate);
     console.log(`📁 Stored candidate ${id} (total: ${this.store.size})`);
   }
 
-  get(id: string): CandidateProfile | undefined {
+  async get(id: string): Promise<CandidateProfile | undefined> {
     return this.store.get(id);
   }
 
-  has(id: string): boolean {
+  async has(id: string): Promise<boolean> {
     return this.store.has(id);
   }
 
-  delete(id: string): boolean {
+  async delete(id: string): Promise<boolean> {
     const deleted = this.store.delete(id);
     if (deleted) {
       console.log(`🗑️ Deleted candidate ${id} (remaining: ${this.store.size})`);
@@ -25,17 +48,11 @@ class CandidateStore {
     return deleted;
   }
 
-  list(): CandidateProfile[] {
+  async list(): Promise<CandidateProfile[]> {
     return Array.from(this.store.values());
   }
 
-  listSummary(): Array<{
-    id: string;
-    name: string;
-    uploadedAt: string;
-    skillsCount: number;
-    experience: string;
-  }> {
+  async listSummary(): Promise<CandidateSummary[]> {
     return Array.from(this.store.values()).map(c => ({
       id: c.id,
       name: c.profile.name || 'Nom non disponible',
@@ -45,16 +62,16 @@ class CandidateStore {
     }));
   }
 
-  count(): number {
+  async count(): Promise<number> {
     return this.store.size;
   }
 
-  clear(): void {
+  async clear(): Promise<void> {
     this.store.clear();
     console.log('🧹 Cleared all candidates from store');
   }
 }
 
 // Singleton instance
-export const candidateStore = new CandidateStore();
+export const candidateStore: CandidateRepository = new CandidateStore();
 export default candidateStore;

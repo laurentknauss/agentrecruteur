@@ -3,19 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "description": "AI Recruiter Agency - Monorepo (backend + frontend) orchestrated with Turborepo",
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
   "scripts": {
     "dev": "concurrently \"turbo run dev --filter=backend...\" \"turbo run dev --filter=frontend...\"",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "concurrently": "^9.2.0",
-    "turbo": "^1.13.0"
+    "concurrently": "^9.2.4",
+    "turbo": "^1.13.4"
   },
   "packageManager": "pnpm@10.9.0+sha512.0486e394640d3c1fb3c9d43d49cf92879ff74f8516959c235308f5a8f62e2e19528a65cdc2a3058f587cde71eba3d5b56327c8c33a97e4c4051ca48a10ca2d5f"
 }

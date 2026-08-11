@@ -203,9 +203,9 @@ function generateSimpleAnswer(question: string, candidate: CandidateProfile): st
 async function generateLLMAnswer(question: string, candidate: CandidateProfile): Promise<string> {
   try {
     // Import LLM client dynamically
-    const { default: createReplicateClient, runGPT5Model } = await import('./src/clients/replicateClient.js');
+    const { default: createOpenAIClient, runGPT5Model } = await import('./src/clients/openaiClient.js');
     
-    const client = createReplicateClient();
+    const client = createOpenAIClient();
     
     const systemPrompt = `Tu es un assistant RH expert qui répond aux questions sur les candidats.
 Réponds de manière concise et professionnelle en français.

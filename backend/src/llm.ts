@@ -1,9 +1,9 @@
-// LLM integration - mapped to existing replicateClient
-import createReplicateClient, { runGPT5Model } from './clients/replicateClient.js';
+// LLM integration - mapped to existing openaiClient (GPT-5.5)
+import createOpenAIClient, { runGPT5Model } from './clients/openaiClient.js';
 import { CandidateProfile } from './types.js';
 
 /**
- * Generate LLM-powered answer using existing replicateClient
+ * Generate LLM-powered answer using existing openaiClient
  * Conserves prompts and signature from original design
  */
 export async function generateLLMAnswer(
@@ -13,8 +13,8 @@ export async function generateLLMAnswer(
   try {
     console.log(`🤖 Generating LLM answer for candidate ${candidate.id}`);
     
-    // Use existing replicateClient
-    const client = createReplicateClient();
+    // Use existing openaiClient
+    const client = createOpenAIClient();
     
     // System prompt for Q&A context
     const systemPrompt = `Tu es un assistant RH expert qui répond aux questions sur les candidats.

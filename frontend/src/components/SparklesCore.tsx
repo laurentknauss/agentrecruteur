@@ -1,6 +1,6 @@
 "use client";
-import React, { useId, useState, useEffect, useMemo } from "react";
-import { motion, useAnimation, Variants } from "motion/react";
+import React, { useState, useEffect } from "react";
+import { motion, Variants } from "motion/react";
 import { cn } from "@/lib/utils";
 
 type SparkleProps = {
@@ -31,7 +31,6 @@ const SparklesCore = (props: {
   } = props;
 
   const [sparkles, setSparkles] = useState<SparkleProps[]>([]);
-  const id = useId();
 
   const generateSparkle = (): SparkleProps => {
     return {

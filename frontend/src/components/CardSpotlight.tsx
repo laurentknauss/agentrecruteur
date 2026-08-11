@@ -8,19 +8,19 @@ export const CardSpotlight = ({
   radius = 350,
   color = "#262626",
   className,
-  ...props
 }: {
   radius?: number;
   color?: string;
+  className?: string;
   children: React.ReactNode;
-} & React.HTMLAttributes<HTMLDivElement>) => {
+}) => {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
-  function handleMouseMove({ currentTarget, clientX, clientY }: any) {
-    let { left, top } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const { left, top } = e.currentTarget.getBoundingClientRect();
+    mouseX.set(e.clientX - left);
+    mouseY.set(e.clientY - top);
   }
 
   const spotlightX = useSpring(mouseX, { stiffness: 500, damping: 100 });
@@ -34,14 +34,13 @@ export const CardSpotlight = ({
   return (
     <motion.div
       className={cn(
-        "relative h-full w-full rounded-3xl border border-neutral-800 bg-neutral-950 p-8",
+        "relative h-full w-full rounded-3xl border border-slate-700 bg-slate-800 p-8",
         className
       )}
       onMouseMove={handleMouseMove}
       style={{
-        background: "radial-gradient(circle at 50% 50%, rgba(120, 119, 198, 0.3), transparent 50%)",
+        backgroundImage: "radial-gradient(circle at 50% 50%, rgba(148, 163, 184, 0.18), transparent 50%)",
       }}
-      {...props}
     >
       <motion.div
         className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-300 group-hover:opacity-100"
