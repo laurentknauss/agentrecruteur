@@ -48,11 +48,6 @@ export function Footer() {
             <p className="text-sm text-zinc-500 mb-4">
               Assistant pour l&apos;élagage et l&apos;analyse préliminaire des candidatures.
             </p>
-            {/* System Status */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 pulse-glow" />
-              <span className="text-xs text-zinc-400">Backend opérationnel</span>
-            </div>
           </div>
 
           {/* Links */}

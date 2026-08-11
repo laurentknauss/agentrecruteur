@@ -18,9 +18,9 @@ const steps = [
   },
   {
     icon: MessageCircleQuestion,
-    title: "Interrogez le candidat",
+    title: "Interrogez le CV du candidat",
     description:
-      "Posez des questions sur le profil — expérience, technos, points forts — et obtenez une réponse immédiate.",
+      "Posez vos questions à notre agent et obtenez des réponses immédiates, précises et sourcées : expérience, compétences, points forts — sans relire et re-parcourir le CV pour la énième fois.",
   },
 ]
 

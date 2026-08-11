@@ -5,7 +5,7 @@ import { FileUpload } from './FileUpload';
 import { CardSpotlight } from './CardSpotlight';
 import { GridPattern } from './GridPattern';
 import { motion, AnimatePresence } from 'motion/react';
-import { IconUser, IconBriefcase, IconStar, IconMessageCircle, IconSparkles, IconBrain, IconTrendingUp } from '@tabler/icons-react';
+import { IconUser, IconBriefcase, IconStar, IconMessageCircle, IconBrain, IconTrendingUp } from '@tabler/icons-react';
 
 interface StructuredResume {
   name: string | null;
@@ -178,13 +178,6 @@ function CandidateQAContainer() {
         >
           <CardSpotlight className="h-fit group">
             <div className="relative z-20">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl">
-                  <IconSparkles className="w-6 h-6 text-white" />
-                </div>
-                <h2 className="text-2xl font-bold text-white">Téléchargement CV</h2>
-              </div>
-
               {isUploading ? (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -218,21 +211,6 @@ function CandidateQAContainer() {
               )}
             </div>
           </CardSpotlight>
-
-          {/* Instructions */}
-          {!candidateId && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="text-center text-neutral-400 mt-8"
-              data-testid="instructions"
-            >
-              <p className="text-lg">
-                Déposez votre CV pour commencer l&apos;analyse intelligente
-              </p>
-            </motion.div>
-          )}
         </motion.div>
 
         {/* Profile Results Section */}

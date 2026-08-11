@@ -48,8 +48,8 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="text-lg sm:text-xl text-white max-w-2xl mx-auto mb-10 leading-relaxed"
         >
-          C&apos;est l&apos;IA qui analyse les CV : élagage, structuration et pré-sélection de candidats.
-          Déposez un PDF, obtenez un profil structuré, un score et un Q&amp;A.
+          Notre agent scanne et analyse chaque CV en quelques secondes : structuration, score et
+          pré-sélection automatiques. Gagnez des heures par recrutement et concentrez-vous sur les décisions.
         </motion.p>
 
         {/* Tech stack */}
