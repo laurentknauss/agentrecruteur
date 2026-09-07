@@ -66,6 +66,20 @@ Règles de sécurité :
 3. `git push origin feat/…` puis `gh pr create --fill`.
 4. Attendre les checks verts puis `gh pr merge --squash --delete-branch` (0 review requise).
 
+### Rôle des branches
+
+| Branche | Rôle |
+|---|---|
+| `main` | **Production** — protégée (PR + checks verts, pas de force-push). Toujours déployable (agentrecruteur.fr). |
+| `feat/ui-header-footer-fr` | **Itération UI dev** — contient les annotations dev (noms rouges `data-devbox`) pour régler visuellement le design. Contenu à porter sur `main` via branches propres (annotations retirées). |
+| `non-locked-features` | **Dev local déverrouillé** — verrous démo coupés dans le code (`DEMO_LOCKED=false`, `isDemoLocked=false`) pour tester upload/Q&A réels (OpenAI/Mongo). **Ne pas pousser en production.** |
+| `docs/agents-github-workflow` | Docs (ancienne, à supprimer après merge). |
+| `origin/docs/okf-bilan-session`, `origin/feat/logo-sergent-loupe`, `origin/feat/prod-clean-ui`, `origin/refactor/mono-port-next` | Branches distantes **déjà mergées** — obsolètes, nettoyables. |
+
+Règles :
+- Ne **jamais** committer directement sur `main` : passer par une branche `feat/*` ou `docs/*` puis PR.
+- `non-locked-features` et `feat/ui-header-footer-fr` servent uniquement au travail local — attention à ne pas les pousser/merger accidentellement en prod.
+
 ## État actuel (2026-09-07)
 
 ### ✅ Fait
