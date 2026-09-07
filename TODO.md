@@ -2,7 +2,11 @@
 
 ## 0) Rappels (faits vérifiés)
 - [x] bullionradar.fr — NS: ns1/ns2/ns3.digitalocean.com (DO autorité), A: 209.38.207.109 (VPS), Server: Caddy.
-- [x] agentrecruteur.fr — NS: **ns1/ns2/ns3.digitalocean.com** (NS changés chez GoDaddy ✅), A: 3.33.130.190, 15.197.148.33 (AWS, encore à remplacer chez DO), DO: zone à créer.
+- [x] Preuve zone DO EXISTANTE pour bullionradar.fr: `dig @ns1.digitalocean.com bullionradar.fr SOA +short` → réponse SOA (donc la zone a bien été créée chez DO un jour, probablement lors d'une session passée/assistant — même si non mémorisée).
+- [x] agentrecruteur.fr — NS encore ns81/ns82.domaincontrol.com (changement en cours de propagation).
+- [x] Preuve que DO N'A PAS (encore) de zone pour agentrecruteur.fr: `dig @ns1.digitalocean.com agentrecruteur.fr SOA` → status REFUSED.
+
+⚠️ **Conséquence**: une fois la délégation NS basculée sur DO, si aucune zone n'existe chez DO → REFUSED → domaine KO. La zone DO est **indispensable** (c'est ce qui existe déjà pour bullionradar).
 
 Commandes de vérif (références):
 ```bash
@@ -21,10 +25,11 @@ Commandes de vérif (références):
  dig @ns1.digitalocean.com agentrecruteur.fr A +short
 ```
 
-## 1) Voie DNS choisie
-- [x] Option B — Reproduire le schéma BullionRadar (NS DigitalOcean + zone DO)
-  - ✅ NS changés chez GoDaddy → ns1/ns2/ns3.digitalocean.com (fait par Laurent)
-- [ ] Option A — Garder GoDaddy comme autorité DNS (non retenue)
+## 1) Voie DNS choisie — ACTION REQUISE AU CHOIX
+- [x] NS agentrecruteur.fr changés chez GoDaddy → ns1/ns2/ns3.digitalocean.com (fait par Laurent)
+- [ ] **CHOIX 1 — Créer la zone chez DO (sinon domaine KO après propagation)** (cf. §3)
+  → C'est l'étape déjà existante pour bullionradar (zone DO active, preuve SOA). Même si elle n'a pas été faite à la main, elle est nécessaire.
+- [ ] **CHOIX 2 — Revenir en arrière** : remettre les NS GoDaddy (ns81/ns82.domaincontrol.com) + A chez GoDaddy (cf. §2) — si vous ne voulez pas gérer la zone DO
 
 ## 2) Option A — GoDaddy uniquement (DSN géré chez GoDaddy)
 - [ ] Mettre à jour les enregistrements A chez GoDaddy (zone agentrecruteur.fr)
