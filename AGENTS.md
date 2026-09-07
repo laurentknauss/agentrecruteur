@@ -1,7 +1,7 @@
 # AGENTS.md — CV Inspector
 
 > Assistant IA de pré-sélection de CV (marché français). Guide de référence pour tout agent travaillant sur ce repo.
-> Source : CLAUDE.md (déprécié — AGENTS.md fait foi).
+> Ce document est la source de vérité (single source of truth) pour les agents IA de ce repo.
 
 ## Vue d'ensemble
 
