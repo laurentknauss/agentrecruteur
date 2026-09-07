@@ -29,19 +29,19 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setOpen("signup")}
-            className="group relative inline-flex items-center overflow-hidden rounded-full border border-[#4d4a2f]/30 bg-white px-5 py-2.5 text-sm font-semibold text-[#4d4a2f] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#4d4a2f]/60 hover:shadow-[0_8px_24px_-6px_rgba(77,74,47,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4d4a2f]/40"
+            className="group relative inline-flex items-center overflow-hidden rounded-full bg-gradient-to-b from-[#E8601C] to-[#C94F10] px-6 py-2.5 text-sm font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-6px_rgba(232,96,28,0.6)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8601C]/50"
             aria-label="Créer un compte (démo sur demande)"
           >
-            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[#f5f4ef] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
             <span className="relative">Inscription</span>
           </button>
           <button
             type="button"
             onClick={() => setOpen("login")}
-            className="group relative inline-flex items-center overflow-hidden rounded-full bg-gradient-to-b from-[#5b5733] to-[#3f3c26] px-5 py-2.5 text-sm font-semibold text-[#f5f4ef] shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-6px_rgba(77,74,47,0.65)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            className="group relative inline-flex items-center overflow-hidden rounded-full border border-[#4d4a2f]/40 bg-white px-5 py-2.5 text-sm font-semibold text-[#4d4a2f] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#4d4a2f]/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4d4a2f]/40"
             aria-label="Se connecter (accès restreint)"
           >
-            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[#f5f4ef] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
             <span className="relative">Connexion</span>
           </button>
         </div>
@@ -59,7 +59,7 @@ export function Navbar() {
                 href="https://linkedin.com/in/laurentknauss"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-md bg-gradient-to-b from-[#5b5733] to-[#3f3c26] px-3 py-2 text-sm font-medium text-white hover:-translate-y-0.5 transition-transform"
+                className="inline-flex items-center rounded-md bg-gradient-to-b from-[#E8601C] to-[#C94F10] px-3 py-2 text-sm font-medium text-white hover:-translate-y-0.5 transition-transform"
               >
                 Contacter via LinkedIn
               </a>

@@ -73,17 +73,7 @@ export function Hero() {
           pré-sélection automatiques. Gagnez des heures par recrutement et concentrez-vous sur les décisions.
         </motion.p>
 
-        {/* Tech stack */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.7 }}
-          className="relative text-sm"
-          style={{ color: "rgba(245,244,239,0.9)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}
 
-        >
-          PDF → Profil structuré → Score · Q&amp;A
-        </motion.p>
       </div>
     </section>
   )
