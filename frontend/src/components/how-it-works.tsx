@@ -26,7 +26,7 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="comment" className="relative py-16 px-4 bg-[#f5f4ef] scroll-mt-24" data-devbox="how-it-works">
+    <section id="comment" className="relative py-16 px-4 bg-[#f5f4ef] scroll-mt-24">
       <div className="max-w-6xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -34,7 +34,7 @@ export function HowItWorks() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
           className="relative text-3xl sm:text-4xl font-bold text-black text-center mb-12"
-          data-devbox="titre-how-it-works"
+
         >
           Comment ça marche
         </motion.h2>

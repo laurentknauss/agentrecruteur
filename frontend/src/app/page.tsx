@@ -6,11 +6,10 @@ import { Footer } from "@/components/footer"
 import CandidateQAContainer from "@/components/CandidateQAContainer"
 
 export default function Home() {
-  const isDev = process.env.NODE_ENV === "development"
 
   return (
     <SmoothScroll>
-      {isDev && (
+      
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -25,7 +24,7 @@ export default function Home() {
       <main className="min-h-screen bg-transparent">
         <Navbar />
         <Hero />
-        <section id="upload" className="relative scroll-mt-24 bg-[#f5f4ef]" data-devbox="section-upload">
+        <section id="upload" className="relative scroll-mt-24 bg-[#f5f4ef]">
           <CandidateQAContainer />
         </section>
         <HowItWorks />

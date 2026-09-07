@@ -12,7 +12,7 @@ export function Navbar() {
       : "Accès restreint. Contactez Laurent Knauss pour obtenir des identifiants de démo."
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#f5f4ef] border-b border-black/10" data-devbox="navbar">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#f5f4ef] border-b border-black/10">
       <div className="mx-auto flex items-center justify-between px-6 py-3">
         <a href="#" className="block" aria-label="Agent Recruteur">
           <Image

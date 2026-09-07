@@ -29,7 +29,7 @@ export function Footer() {
   const isInView = useInView(ref, { once: true, margin: "-50px" })
 
   return (
-    <footer ref={ref} className="relative border-t border-black/10 bg-[#f5f4ef]" data-devbox="footer">
+    <footer ref={ref} className="relative border-t border-black/10 bg-[#f5f4ef]">
       <div className="max-w-6xl mx-auto px-4 py-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
