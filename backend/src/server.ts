@@ -31,6 +31,28 @@ async function initStorage(): Promise<void> {
 app.use(cors());
 app.use(express.json());
 
+// Demo lock: protect LLM-costly endpoints in production demos
+const DEMO_LOCK = process.env.DEMO_LOCK === '1';
+if (DEMO_LOCK) {
+  console.log('🔒 DEMO_LOCK enabled — write/LLM endpoints are disabled');
+}
+
+app.use((req, res, next) => {
+  if (!DEMO_LOCK) return next();
+
+  // Block costly endpoints that trigger LLM usage
+  const isUpload = req.method === 'POST' && req.path === '/api/upload-cv';
+  const isAsk = req.method === 'POST' && /^\/api\/candidate\/[\w-]+\/ask$/.test(req.path);
+
+  if (isUpload || isAsk) {
+    return res.status(403).json({
+      error: "Accès restreint en démo. Contactez Laurent Knauss pour obtenir des identifiants.",
+    });
+  }
+
+  return next();
+});
+
 // Multer configuration for file uploads
 const upload = multer({ 
   storage: multer.memoryStorage(),
