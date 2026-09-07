@@ -1,7 +1,7 @@
 // PDF processing utilities - mapped to existing codebase
 import { extractPDFText } from './utils/agentUtils.js';
 import { structureResumeText } from './workers/structuringWorker.js';
-import { StructuredResume } from './types.js';
+import { StructuredResume } from './types.ts';
 import fs from 'fs/promises';
 import path from 'path';
 

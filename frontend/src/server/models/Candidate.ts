@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { StructuredResume, ResumeAnalysis } from '../types.js';
+import { StructuredResume, ResumeAnalysis } from '../types.ts';
 
 // Interface pour le document MongoDB
 export interface CandidateDocument extends Document {
@@ -96,4 +96,7 @@ candidateSchema.index({ 'profile.name': 'text', 'profile.skills': 'text' });
 candidateSchema.index({ 'analysis.experience_level': 1 });
 candidateSchema.index({ 'analysis.overall_score': -1 });
 
-export const Candidate = mongoose.model<CandidateDocument>('Candidate', candidateSchema);
+// Garde contre la recompilation du modèle dans des bundles de routes distincts (Next.js)
+export const Candidate =
+  (mongoose.models['Candidate'] as mongoose.Model<CandidateDocument> | undefined) ??
+  mongoose.model<CandidateDocument>('Candidate', candidateSchema);

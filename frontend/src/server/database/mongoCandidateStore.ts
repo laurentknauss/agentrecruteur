@@ -1,8 +1,8 @@
 // MongoDB Atlas storage backend — persistent candidate storage.
 // Same interface as the in-memory store (see store.ts), swappable at runtime.
-import { CandidateProfile } from '../types.js';
-import { Candidate, CandidateDocument } from '../models/Candidate.js';
-import { CandidateRepository, CandidateSummary } from '../store.js';
+import { CandidateProfile } from '../types.ts';
+import { Candidate, CandidateDocument } from '../models/Candidate.ts';
+import { CandidateRepository, CandidateSummary } from '../store.ts';
 
 function toProfile(doc: CandidateDocument): CandidateProfile {
   return {
