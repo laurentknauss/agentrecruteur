@@ -1,6 +1,6 @@
 // Storage abstraction for candidate profiles.
 // Backends: in-memory (fallback) or MongoDB Atlas (persistent).
-import { CandidateProfile } from './types.js';
+import { CandidateProfile } from './types.ts';
 
 export interface CandidateSummary {
   id: string;

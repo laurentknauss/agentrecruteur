@@ -13,8 +13,8 @@ permet un Q&A sur le candidat.
 
 | Sujet | Réponse |
 |---|---|
-| Type | Monorepo pnpm + Turborepo (2 workspaces : `backend`, `frontend`) |
-| Backend | Node.js + Express + **TypeScript** (TS 7 natif / tsgo), ESM |
+| Type | App Next.js unique (UI + API `/api/*` sur le même serveur, port 3000) |
+| Backend | Route handlers Next.js (App Router) + **TypeScript** (TS 7 natif / tsgo) |
 | Frontend | Next.js 15 (App Router) + React 19 + Tailwind CSS 4 |
 | LLM | OpenAI **Responses API** (GPT-5.5), modèle piloté par `GPT_MODEL` |
 | Extraction PDF | `pdf2json` + `unpdf` (tolérance aux PDF malformés) |
@@ -91,13 +91,10 @@ PDF (upload) → extraction pdf2json → StructuringWorker (PDF → JSON)
 pnpm install
 
 # 1. Configuration locale (jamais commitée)
-cp backend/.env.example backend/.env   # DEMO_LOCK=1 par défaut ; OPENAI_API_KEY vide en démo
+cp frontend/.env.example frontend/.env.local  # DEMO_LOCK=1 par défaut ; OPENAI_API_KEY vide en démo
 
-# 2. Backend API (port 3001) — vitrine sans coût LLM
-pnpm --filter backend run dev
-
-# 3. Frontend (port 3000)
-pnpm --filter frontend run dev
+# 2. Serveur unique (UI + API) — vitrine sans coût LLM
+pnpm dev   # http://localhost:3000
 ```
 
 - Ouvrir `http://localhost:3000`. En mode démo, l'upload et le Q&A renvoient un 403 avec message de contact.
@@ -132,10 +129,8 @@ CV de test réel : `resumes/Sophie_Martin_Marketing.pdf` (format français : âg
 ## Scripts
 
 ```bash
-pnpm run typecheck            # tsgo (TS 7 natif) backend + frontend
-pnpm --filter frontend run build
-pnpm --filter backend run test:pdf
-node backend/testOrchestrator.js   # test du pipeline complet
+pnpm typecheck
+pnpm build
 ```
 
 ---

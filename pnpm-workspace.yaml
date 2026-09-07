@@ -1,6 +1,5 @@
 packages:
   - "frontend"
-  - "backend"
 allowBuilds:
   canvas: false
   esbuild: true

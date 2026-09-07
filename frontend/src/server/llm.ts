@@ -1,6 +1,6 @@
 // LLM integration - mapped to existing openaiClient (GPT-5.5)
 import createOpenAIClient, { runGPT5Model } from './clients/openaiClient.js';
-import { CandidateProfile } from './types.js';
+import { CandidateProfile } from './types.ts';
 
 /**
  * Generate LLM-powered answer using existing openaiClient

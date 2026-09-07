@@ -6,7 +6,7 @@
 ## Vue d'ensemble
 
 - **Produit** : « CV Inspector » — assistant IA pour l'élagage et l'analyse préliminaire des candidatures (recruteurs français).
-- **Stack** : monorepo pnpm + Turborepo — `backend/` (Node.js + Express + TypeScript) + `frontend/` (Next.js 15 + React 19 + Tailwind 4).
+- **Stack** : app **unique Next.js 15** (React 19 + Tailwind 4) — l'UI **et** l'API (`/api/*`) vivent dans le même serveur (App Router), un seul process/port (3000).
 - **LLM** : GPT-5.5 via l'API OpenAI officielle (Responses API, client `openai`).
 - **Persistance** : MongoDB Atlas (mongoose 8) avec repli automatique en mémoire si Atlas est injoignable.
 - **Langue** : interface et analyse en français ; conformité RGPD ; CV au format français.
@@ -19,12 +19,9 @@ Depuis la racine du monorepo (`pnpm` obligatoire) :
 
 | Commande | Rôle |
 |---|---|
-| `pnpm install` | Installer les dépendances (workspace) |
-| `pnpm --filter backend run dev` | Backend API sur `:3001` (tsx) |
-| `pnpm --filter frontend run dev` | Frontend Next.js sur `:3000` |
-| `pnpm --filter backend run typecheck` | Typecheck backend (tsgo / TS 7) |
-| `pnpm --filter backend run test:pdf` | Test extraction PDF |
-| `node backend/testOrchestrator.js` | Test du pipeline complet |
+| `pnpm dev` | Serveur unique Next.js sur `:3000` (UI + API) |
+| `pnpm build` / `pnpm start` | Build / prod (port 3000) |
+| `pnpm typecheck` | Typecheck (tsgo / TS 7) |
 
 ## Architecture
 
@@ -34,17 +31,13 @@ PDF (upload) → extraction pdf2json → StructuringWorker (PDF→JSON)
   → CandidateRepository (Mongo Atlas | mémoire) → API Express → Frontend Next.js
 ```
 
-- **Orchestrateur** : `backend/src/orchestrator/recruitingOrchestrator.js` (LangChain RunnableSequence).
-- **Workers** : `backend/src/workers/` (structuringWorker, comprehensiveResumeAnalyzer).
-- **Stockage** : interface `CandidateRepository` dans `backend/src/store.ts` ; implémentations :
-  - `database/mongoCandidateStore.ts` — persistant (Atlas)
-  - `store.ts` (in-memory) — fallback
-  - Sélection au démarrage dans `server.ts` (`initStorage()`), exposée par `GET /health` (`storage`).
-- **API** : `POST /api/upload-cv`, `POST /api/candidate/:id/ask`, `GET /api/candidates`, `GET /api/candidate/:id`, `DELETE /api/candidate/:id`, `GET /health`.
+- **Domaine (ex-backend)** : `frontend/src/server/` (orchestrateur `orchestrator/recruitingOrchestrator.js`, workers `workers/`, pdf, llm, store, database).
+- **API** : route handlers App Router dans `frontend/src/app/api/` (`upload-cv`, `candidate/[id]`, `candidate/[id]/ask`, `candidates`, `health`) — plus de serveur Express séparé.
+- **Stockage** : interface `CandidateRepository` (`frontend/src/server/store.ts`) ; sélection Atlas/mémoire via `frontend/src/server/storage-init.ts`, exposée par `GET /api/health` (`storage`).
 
 ## Configuration (jamais commitée)
 
-Variables requises dans `backend/.env` (et `.env` racine) :
+Variables lues par Next (fichier local `frontend/.env.local`, jamais commité) :
 
 ```
 OPENAI_API_KEY=…            # https://platform.openai.com/api-keys
