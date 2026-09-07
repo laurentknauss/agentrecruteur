@@ -18,10 +18,10 @@ export function Navbar() {
           <Image
             src="/logo.png"
             alt="Agent Recruteur"
-            width={192}
-            height={192}
+            width={210}
+            height={210}
             priority
-            className="w-48 h-48 object-contain"
+            className="w-[210px] h-[210px] object-contain"
           />
         </a>
 
