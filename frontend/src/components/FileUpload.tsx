@@ -29,8 +29,13 @@ const secondaryVariant = {
 
 export const FileUpload = ({
   onChange,
+  locked = false,
+  onLockedClick,
 }: {
   onChange?: (files: File[]) => void;
+  /** Mode démo : empêche l'ouverture du sélecteur de fichiers */
+  locked?: boolean;
+  onLockedClick?: () => void;
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,6 +46,10 @@ export const FileUpload = ({
   };
 
   const handleClick = () => {
+    if (locked) {
+      onLockedClick?.()
+      return
+    }
     fileInputRef.current?.click();
   };
 
@@ -50,7 +59,13 @@ export const FileUpload = ({
     accept: {
       'application/pdf': ['.pdf']
     },
-    onDrop: handleFileChange,
+    onDrop: (accepted) => {
+      if (locked) {
+        onLockedClick?.()
+        return
+      }
+      handleFileChange(accepted)
+    },
     onDropRejected: (error) => {
       console.log(error);
     },
@@ -136,19 +151,19 @@ export const FileUpload = ({
               <motion.div
                 layoutId="file-upload"
                 variants={mainVariant}
-                className="relative group-hover/file:shadow-2xl z-40 bg-white flex items-center justify-center h-32 mt-4 w-full max-w-[8rem] mx-auto rounded-md shadow-[0px_10px_50px_rgba(0,0,0,0.1)]"
+                className="relative group-hover/file:shadow-2xl z-40 flex items-center justify-center h-32 mt-4 w-full max-w-[8rem] mx-auto rounded-xl bg-gradient-to-b from-[#E8601C] to-[#C94F10] shadow-[0px_10px_40px_-8px_rgba(232,96,28,0.55)]"
               >
                 {isDragActive ? (
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-neutral-600 flex flex-col items-center"
+                    className="text-white flex flex-col items-center"
                   >
                     Déposez ici
-                    <IconUpload className="h-4 w-4 text-neutral-600" />
+                    <IconUpload className="h-4 w-4 text-white" />
                   </motion.p>
                 ) : (
-                  <IconUpload className="h-4 w-4 text-neutral-600" />
+                  <IconUpload className="h-6 w-6 text-white" />
                 )}
               </motion.div>
             )}
