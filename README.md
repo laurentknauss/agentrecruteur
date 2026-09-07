@@ -131,6 +131,7 @@ CV de test réel : `resumes/Sophie_Martin_Marketing.pdf` (format français : âg
 ```bash
 pnpm typecheck
 pnpm build
+pnpm test   # 29 tests vitest — voir frontend/tests/README.md
 ```
 
 ---
