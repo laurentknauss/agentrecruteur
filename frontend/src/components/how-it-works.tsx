@@ -48,7 +48,6 @@ export function HowItWorks() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.15 }}
               className="relative rounded-2xl border border-slate-700 bg-slate-700/40 p-6 text-center"
-              data-devbox={`etape-${index + 1}-${step.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
             >
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white text-slate-600 mb-4">
                 <step.icon className="w-6 h-6" />
