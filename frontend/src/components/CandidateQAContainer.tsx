@@ -62,6 +62,8 @@ interface QAHistory {
 
 function CandidateQAContainer() {
   const [isUploading, setIsUploading] = useState(false);
+  const isDemoLocked = process.env.NEXT_PUBLIC_DEMO_LOCK === "1"
+  const [demoAsk, setDemoAsk] = useState(false);
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [profile, setProfile] = useState<StructuredResume | null>(null);
   const [analysis, setAnalysis] = useState<UploadResponse['analysis'] | null>(null);
@@ -162,6 +164,44 @@ function CandidateQAContainer() {
 
   return (
     <div className="relative overflow-hidden bg-transparent py-16">
+      {/* Popup démo : n'apparaît que quand un visiteur clique sur la zone d'upload */}
+      {isDemoLocked && demoAsk && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4"
+          onClick={() => setDemoAsk(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-md rounded-2xl bg-[#f5f4ef] p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="demo-locked-popup"
+          >
+            <h3 className="text-xl font-bold text-black">Accès démo protégé 🛡️</h3>
+            <p className="mt-2 text-sm text-black/75">
+              Pour tester l&apos;application, contactez Laurent Knauss via LinkedIn :
+            </p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <a
+                href="https://linkedin.com/in/laurentknauss"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#5b5733] to-[#3f3c26] px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
+                data-testid="linkedin-contact"
+              >
+                💬 Contacter via LinkedIn
+              </a>
+              <button
+                type="button"
+                onClick={() => setDemoAsk(false)}
+                className="inline-flex items-center justify-center rounded-full border border-black/20 bg-white px-5 py-2.5 text-sm font-medium text-black hover:bg-black/5"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Background Effects */}
       <div className="absolute inset-0">
         <GridPattern className="opacity-20" />
@@ -194,7 +234,11 @@ function CandidateQAContainer() {
                   <p className="text-sm text-neutral-400 mt-2">Traite le CV du candidat(e)</p>
                 </motion.div>
               ) : (
-                <FileUpload onChange={handleFileUpload} />
+                <FileUpload
+                  onChange={handleFileUpload}
+                  locked={isDemoLocked}
+                  onLockedClick={() => setDemoAsk(true)}
+                />
               )}
 
               {error && (

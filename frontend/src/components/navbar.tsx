@@ -8,8 +8,8 @@ export function Navbar() {
 
   const message =
     open === "signup"
-      ? "Contactez Laurent Knauss, le créateur du site, afin d'avoir des identifiants pour tester cette application IA de sélection de CV."
-      : "Accès restreint. Contactez Laurent Knauss pour obtenir des identifiants de démo."
+      ? "Pour obtenir des identifiants de test, contactez Laurent Knauss via LinkedIn — créateur de l'application IA de sélection de CV."
+      : "Accès restreint en démo. Contactez Laurent Knauss via LinkedIn pour obtenir des identifiants."
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#f5f4ef] border-b border-black/10">
@@ -56,15 +56,17 @@ export function Navbar() {
             <p className="text-sm text-black/80">{message}</p>
             <div className="mt-4 flex justify-end gap-2">
               <a
-                href="mailto:laurentknauss@protonmail.com?subject=Accès%20démo%20Agent%20Recruteur"
-                className="inline-flex items-center rounded-md border border-black/20 bg-white px-3 py-2 text-sm font-medium text-black hover:bg-black/5"
+                href="https://linkedin.com/in/laurentknauss"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-md bg-gradient-to-b from-[#5b5733] to-[#3f3c26] px-3 py-2 text-sm font-medium text-white hover:-translate-y-0.5 transition-transform"
               >
-                Contacter Laurent
+                Contacter via LinkedIn
               </a>
               <button
                 type="button"
                 onClick={() => setOpen(null)}
-                className="inline-flex items-center rounded-md bg-[#111] px-3 py-2 text-sm font-medium text-white hover:bg-black"
+                className="inline-flex items-center rounded-md border border-black/20 bg-white px-3 py-2 text-sm font-medium text-black hover:bg-black/5"
               >
                 Fermer
               </button>

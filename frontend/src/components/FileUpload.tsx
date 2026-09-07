@@ -29,8 +29,13 @@ const secondaryVariant = {
 
 export const FileUpload = ({
   onChange,
+  locked = false,
+  onLockedClick,
 }: {
   onChange?: (files: File[]) => void;
+  /** Mode démo : empêche l'ouverture du sélecteur de fichiers */
+  locked?: boolean;
+  onLockedClick?: () => void;
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,6 +46,10 @@ export const FileUpload = ({
   };
 
   const handleClick = () => {
+    if (locked) {
+      onLockedClick?.()
+      return
+    }
     fileInputRef.current?.click();
   };
 
@@ -50,7 +59,13 @@ export const FileUpload = ({
     accept: {
       'application/pdf': ['.pdf']
     },
-    onDrop: handleFileChange,
+    onDrop: (accepted) => {
+      if (locked) {
+        onLockedClick?.()
+        return
+      }
+      handleFileChange(accepted)
+    },
     onDropRejected: (error) => {
       console.log(error);
     },
