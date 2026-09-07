@@ -60,14 +60,19 @@ export function Hero() {
           </span>
         </h1>
 
-        {/* Subheadline */}
+        {/* Subheadline — fond blanc, texte noir, sur le fond camouflage */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="relative text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
-          style={{ color: CREME, textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
-
+          className="relative text-lg sm:text-xl max-w-2xl mx-auto mb-2 leading-relaxed"
+          style={{
+            backgroundColor: "#ffffff",
+            color: "#000000",
+            padding: "0.9rem 1.5rem",
+            borderRadius: "0.9rem",
+            boxShadow: "0 6px 24px -8px rgba(0,0,0,0.35)",
+          }}
         >
           Notre agent scanne et analyse chaque CV en quelques secondes : structuration, score et
           pré-sélection automatiques. Gagnez des heures par recrutement et concentrez-vous sur les décisions.
