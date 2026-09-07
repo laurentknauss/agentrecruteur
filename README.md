@@ -10,18 +10,19 @@ Assistant IA de pré-sélection de CV pour le marché français. Upload d'un PDF
 pnpm install
 
 # 1. Configuration (backend/.env — jamais commitée)
-cp backend/.env.example backend/.env   # ou renseigner directement :
-#   OPENAI_API_KEY=…                   # https://platform.openai.com/api-keys
-#   GPT_MODEL=gpt-5.5                  # optionnel (défaut : gpt-5.5)
-#   MONGODB_ATLAS_URI=…                # cluster MongoDB Atlas
-#   MONGODB_DATABASE=cv-inspector
+cp backend/.env.example backend/.env   # puis renseigner les valeurs
 
-# 2. Backend API (port 3001)
+# 2. Backend API (port 3001) — en mode démo par défaut (DEMO_LOCK=1, pas d'appel OpenAI)
 pnpm --filter backend run dev
 
 # 3. Frontend (port 3000)
 pnpm --filter frontend run dev
 ```
+
+> **Mode démo (par défaut)** : `backend/.env.example` pose `DEMO_LOCK=1` — les endpoints coûteux
+> (`POST /api/upload-cv`, `POST /api/candidate/:id/ask`) renvoient **403** avec message de contact.
+> Aucune clé OpenAI n'est requise pour faire tourner la vitrine.
+> Pour activer l'analyse IA complète : mettre `OPENAI_API_KEY`, retirer `DEMO_LOCK`.
 
 > **Stockage** : au démarrage, le backend tente de se connecter à MongoDB Atlas. Si le cluster est injoignable, il bascule automatiquement en stockage mémoire (perte des données au redémarrage) — `GET /health` expose le backend actif (`storage: mongodb | memory`).
 
@@ -66,11 +67,26 @@ pnpm --filter backend run test:pdf
 node backend/testOrchestrator.js
 ```
 
-## Déploiement
+## Déploiement (VPS DigitalOcean — Caddy + systemd)
 
-- Frontend : export statique Next.js (page unique) → Vercel / Netlify / nginx.
-- Backend : Node 20+ (Express), 512 Mo de RAM suffisent → Render / Railway / VPS. Variables d'environnement : `OPENAI_API_KEY`, `MONGODB_ATLAS_URI`, `MONGODB_DATABASE`, `PORT`.
-- CORS : le backend accepte toutes les origines en dev — restreindre en prod.
+Pattern identique aux autres sites Laurent (bullionradar.fr, streetbodies.com) :
+build côté runner/poste, puis rsync vers le VPS et restart systemd. Le `.env` vit sur le VPS (jamais en CI).
+
+- Guide complet : [`deploy/README.md`](deploy/README.md)
+- Bloc Caddy : [`deploy/Caddyfile.agentrecruteur.example`](deploy/Caddyfile.agentrecruteur.example)
+
+Résumé :
+```bash
+# Sur le VPS (user root ou digest) — une seule fois :
+#   /srv/agentrecruteur + systemd (agentrecruteur-frontend/backend) + bloc Caddy
+
+# Depuis ce poste / le CI :
+rsync -az --delete --exclude '.git' --exclude '.env*' \
+  ./ frontend/ user@VPS:/srv/agentrecruteur/
+ssh user@VPS 'cd /srv/agentrecruteur && pnpm install && cd frontend && pnpm run build && sudo systemctl restart agentrecruteur-frontend agentrecruteur-backend'
+```
+
+> CORS : le backend accepte toutes les origines en dev — restreindre à `https://agentrecruteur.fr` en prod si besoin.
 
 ## État
 

@@ -1,7 +1,5 @@
+# Dépendances & builds
 node_modules/
-*.log
-.DS_Store
-.env
 dist/
 build/
 coverage/
@@ -9,4 +7,19 @@ coverage/
 .vercel/
 .turbo/
 *.tsbuildinfo
+
+# Environnement — JAMAIS commiter de secrets
+.env
+.env.local
+.env.*
+!.env.example
+!.env.example.*
+
+# Logs & OS
+*.log
+.DS_Store
+
+# Outils locaux / artefacts de session
+.claude/
+.playwright-mcp/
 .vscode/
