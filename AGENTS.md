@@ -88,3 +88,17 @@ Règles de sécurité :
 - Support multi-recruteurs / multi-sessions (historique par utilisateur) — auth sur invitation.
 - Analytics avancés : scoring et comparaison de candidats.
 - Recherche full-text sur les CV via les index textes déjà déclarés (`profile.name`, `profile.skills`).
+
+## Bilan de session (2026-09-07)
+
+### Environnement & outils
+- pnpm mondial actif : 12.3.4 (`corepack prepare pnpm@12.3.4 --activate`) — « Update available 10.9.0 → 12.3.4 » de pi update corrigé (pi n'utilisait pas encore la bonne version Corepack).
+- MCP pi : config déplacée de `~/.claude.json` vers `~/.pi/agent/mcp.json` (`mcpServers`, 20 serveurs, dont `gemini-media` — binaire `/home/laurent/professionnel/gemini-media-mcp/`). Aucune dépendance « claude ».
+- Moonshot/Kimi : providers intègrent `moonshotai`/`moonshotai-cn`/`opencode` ; auth via `MOONSHOT_API_KEY` (env) ou `auth.json`. Clef Gemini validée (modèles image dispo : `nano-banana-pro-preview`…).
+
+### Produit (agentrecruteur)
+- Identité « sergent instructeur » : logo à la loupe (fond transparent), hero camouflage + voile kaki, CTA orange Cialdini (`#E8601C`), footer épuré, header FR (« Inscription »/« Connexion » → LinkedIn).
+- Fusion mono-port : **app unique Next.js** (route handlers API, domaine dans `frontend/src/server/`, Express supprimé, workspace `[frontend]`) — un seul process/port.
+- Verrou démo double : API `DEMO_LOCK=1` (403) + UI `NEXT_PUBLIC_DEMO_LOCK=1` → `FileUpload locked` + popup « Contactez Laurent via LinkedIn ».
+- Production : `agentrecruteur.fr` live (VPS DO Caddy + systemd port 3004, Let's Encrypt, DNS DO via doctl). GitHub public `laurentknauss/agentrecruteur`, CI + Husky + protection `main`.
+
