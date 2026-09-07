@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   // Proxy : le frontend appelle /api/* en same-origin, redirigé vers le backend Express.
   // BACKEND_API_URL est surchargé dans les previews de variantes (ex. http://localhost:3011).
   async rewrites() {
-    const api = process.env.BACKEND_API_URL || "http://localhost:3011"
+    const api = process.env.BACKEND_API_URL || "http://localhost:3001"
     return [
       {
         source: "/api/:path*",
