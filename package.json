@@ -9,7 +9,8 @@
     "start": "pnpm --filter frontend run start",
     "lint": "pnpm --filter frontend run lint",
     "typecheck": "pnpm --filter frontend run typecheck",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "pnpm --filter frontend run test"
   },
   "devDependencies": {
     "husky": "^9.1.7"
