@@ -1,95 +1,175 @@
-# CV Inspector
+# CV Inspector — Agent Recruteur
 
-Assistant IA de pré-sélection de CV pour le marché français. Upload d'un PDF → extraction → structuration → analyse (compétences, expérience, screening) → score + Q&A sur le candidat.
+Assistant IA de pré-sélection de CV pour le marché français. Un recruteur dépose un PDF de CV ;
+le système extrait, structure, analyse (compétences, expérience, screening), attribue un score et
+permet un Q&A sur le candidat.
 
-**Stack** : monorepo pnpm + Turborepo · Backend Node.js/Express/TypeScript (GPT-5.5 via API OpenAI, LangChain) · Frontend Next.js 15 / React 19 / Tailwind 4 · Persistance MongoDB Atlas (fallback mémoire automatique).
+> Ce dépôt est public dans un but de **revue technique** (CTO / direction technique / prospects).
+> Vous trouverez ici les décisions d'architecture, la posture sécurité et le mode démo protégé.
+
+---
+
+## TL;DR technique
+
+| Sujet | Réponse |
+|---|---|
+| Type | Monorepo pnpm + Turborepo (2 workspaces : `backend`, `frontend`) |
+| Backend | Node.js + Express + **TypeScript** (TS 7 natif / tsgo), ESM |
+| Frontend | Next.js 15 (App Router) + React 19 + Tailwind CSS 4 |
+| LLM | OpenAI **Responses API** (GPT-5.5), modèle piloté par `GPT_MODEL` |
+| Extraction PDF | `pdf2json` + `unpdf` (tolérance aux PDF malformés) |
+| Orchestration | **Orchestrator-Worker** (LangChain `RunnableSequence`) |
+| Persistance | MongoDB Atlas (mongoose 8) avec **fallback mémoire automatique** |
+| Démo publique | **`DEMO_LOCK=1`** : endpoints LLM coupés (403) → zéro coût OpenAI |
+| CI | GitHub Actions : scan secrets + typecheck + build (main protégée, PR + checks verts requis) |
+
+---
+
+## Décisions d'architecture (et pourquoi)
+
+1. **Pipeline « extraire puis analyser », pas de RAG.**
+   Un CV tient intégralement dans le contexte LLM : un pipeline de retrieval ajouterait de la
+   complexité (indexation, chunking, embeddings) sans gain de qualité mesurable sur ce cas d'usage.
+   Le coût d'infra et d'ops reste minimal.
+
+2. **Orchestrator-Worker (chaîne de responsabilités).**
+   Chaque étape produit un artefact typé consommé par la suivante :
+   `PDF → extraction → structuration (PDF → JSON) → analyse compétences → expérience → screening → matching (option)`.
+   Bénéfices : debuggabilité (chaque worker est isolé), scalabilité indépendante, observabilité du pipeline.
+
+3. **Storage avec dégradation gracieuse.**
+   Au démarrage, le backend tente MongoDB Atlas ; si injoignable, il bascule en mémoire
+   (`GET /health` expose le backend actif). La démo ne dépend d'aucun service payant.
+
+4. **LLM derrière une variable de modèle.**
+   `backend/src/clients/openaiClient.js` centralise l'appel OpenAI (Responses API, sortie JSON structurée).
+   `GPT_MODEL` permet de changer de modèle sans toucher au code.
+
+5. **Frontend en cours de qualification.**
+   Le frontend Next.js est un client de démonstration de l'API (upload + visualisation + Q&A) :
+   toute la logique métier vit côté backend, l'UI est remplaçable.
+
+---
+
+## Architecture
+
+```
+PDF (upload) → extraction pdf2json → StructuringWorker (PDF → JSON)
+  → SkillsAnalysisWorker → ExperienceWorker → ScreeningWorker → MatchingWorker (option)
+  → CandidateRepository (Mongo Atlas | mémoire) → API Express → Frontend Next.js
+```
+
+- **Orchestrateur** : `backend/src/orchestrator/recruitingOrchestrator.js` (LangChain `RunnableSequence`).
+- **Workers** : `backend/src/workers/` (structuring, comprehensiveResumeAnalyzer).
+- **Stockage** : interface `CandidateRepository` (`backend/src/store.ts`) ;
+  implémentations `database/mongoCandidateStore.ts` (Atlas) et mémoire.
+- **Répertoire backend** : `backend/`, **frontend** : `frontend/` (imports `@/components/*`).
+
+---
+
+## Qualité & sécurité (posture « code lisible par un CTO »)
+
+- **Aucun secret dans l'historique git.** Vérifié par scan (`sk-…`, clés AWS/Google/GitHub/Slack,
+  URI MongoDB, clés privées PEM, fichiers `.env`). Le pattern est **ré-enforcé** par :
+  - hooks Husky `pre-commit`/`pre-push` (voir `.husky/`) ;
+  - job CI `security` (scan secrets bloquant) ;
+  - `.gitignore` strict (`*.env*` sauf `*.env.example`).
+- **Environnement** : seuls des fichiers `.env.example` sont commités (cf. `backend/.env.example`).
+  Le `.env` vit sur le serveur ou localement, jamais en CI.
+- **Démo publique protégée** : `DEMO_LOCK=1` renvoie 403 sur `POST /api/upload-cv` et
+  `POST /api/candidate/:id/ask` → aucune dépense OpenAI par des visiteurs inconnus.
+  L'accès réel se fait sur invitation (contact).
+- **CI sur tout push/PR** : scan secrets (bloquant), typecheck tsgo backend+frontend, build Next.js.
+  `pnpm audit` est exécuté (informatif).
+- **Branche `main` protégée** : PR obligatoire + checks verts requis + pas de force-push.
+
+---
 
 ## Démarrage rapide
 
 ```bash
 pnpm install
 
-# 1. Configuration (backend/.env — jamais commitée)
-cp backend/.env.example backend/.env   # puis renseigner les valeurs
+# 1. Configuration locale (jamais commitée)
+cp backend/.env.example backend/.env   # DEMO_LOCK=1 par défaut ; OPENAI_API_KEY vide en démo
 
-# 2. Backend API (port 3001) — en mode démo par défaut (DEMO_LOCK=1, pas d'appel OpenAI)
+# 2. Backend API (port 3001) — vitrine sans coût LLM
 pnpm --filter backend run dev
 
 # 3. Frontend (port 3000)
 pnpm --filter frontend run dev
 ```
 
-> **Mode démo (par défaut)** : `backend/.env.example` pose `DEMO_LOCK=1` — les endpoints coûteux
-> (`POST /api/upload-cv`, `POST /api/candidate/:id/ask`) renvoient **403** avec message de contact.
-> Aucune clé OpenAI n'est requise pour faire tourner la vitrine.
-> Pour activer l'analyse IA complète : mettre `OPENAI_API_KEY`, retirer `DEMO_LOCK`.
+- Ouvrir `http://localhost:3000`. En mode démo, l'upload et le Q&A renvoient un 403 avec message de contact.
+- **Activer l'analyse IA réelle** : renseigner `OPENAI_API_KEY` dans `backend/.env` puis retirer `DEMO_LOCK=1`.
 
-> **Stockage** : au démarrage, le backend tente de se connecter à MongoDB Atlas. Si le cluster est injoignable, il bascule automatiquement en stockage mémoire (perte des données au redémarrage) — `GET /health` expose le backend actif (`storage: mongodb | memory`).
+> Stockage : le backend tente MongoDB Atlas puis bascule en mémoire — `GET /health` → `storage: mongodb | memory`.
 
-## API
-
-| Méthode | Route | Rôle |
-|---|---|---|
-| POST | `/api/upload-cv` | Upload PDF → analyse complète (multipart, champ `cv`) |
-| POST | `/api/candidate/:id/ask` | Q&A sur un candidat (`{ question }`) |
-| GET | `/api/candidates` | Liste synthétique des candidats |
-| GET | `/api/candidate/:id` | Détail complet d'un candidat |
-| DELETE | `/api/candidate/:id` | Suppression |
-| GET | `/health` | Statut + backend de stockage actif |
-
-## Données de démo
+### Données de démo
 
 ```bash
-# Avec Atlas connecté : insère 3 candidats fictifs (Sophie Martin, Thomas Bernard, Claire Dubois)
+# Avec Atlas connecté : insère des candidats fictifs (Sophie Martin, etc.)
 cd backend && pnpm exec tsx scripts/seed-demo.ts
 ```
 
-CV de test réel : `resumes/Sophie_Martin_Marketing.pdf` (format français : âge, situation familiale, etc.).
+CV de test réel : `resumes/Sophie_Martin_Marketing.pdf` (format français : âge, situation familiale…).
 
-## Architecture
+---
 
-```
-PDF → extraction (pdf2json) → StructuringWorker (PDF → JSON structuré, GPT-5.5)
-   → SkillsAnalysis → Experience → Screening → Matching (option)
-   → CandidateRepository (Mongo Atlas | mémoire) → API Express → Next.js
-```
+## API
 
-- **Orchestrateur** : `backend/src/orchestrator/recruitingOrchestrator.js` (LangChain RunnableSequence, pattern orchestrator-worker).
-- **LLM** : `backend/src/clients/openaiClient.js` — GPT-5.5 (Responses API), modèle surchargeable via `GPT_MODEL`.
-- **Stockage** : interface `CandidateRepository` (`backend/src/store.ts`) — implémentations `database/mongoCandidateStore.ts` (Atlas) et mémoire.
-- **Choix assumé** : pipeline « extraire puis analyser », pas de RAG — un CV tient intégralement dans le contexte LLM, le retrieval n'apporte rien ici.
+| Méthode | Route | Rôle | Démo |
+|---|---|---|---|
+| POST | `/api/upload-cv` | Upload PDF (multipart `cv`) → analyse complète | 🔒 403 sous DEMO_LOCK |
+| POST | `/api/candidate/:id/ask` | Q&A sur un candidat (`{ question }`) | 🔒 403 sous DEMO_LOCK |
+| GET | `/api/candidates` | Liste synthétique des candidats | ✅ |
+| GET | `/api/candidate/:id` | Détail complet | ✅ |
+| DELETE | `/api/candidate/:id` | Suppression | ✅ |
+| GET | `/health` | Statut + backend de stockage actif | ✅ |
+
+---
 
 ## Scripts
 
 ```bash
-pnpm run typecheck        # tsgo (TypeScript 7 native) sur backend + frontend
+pnpm run typecheck            # tsgo (TS 7 natif) backend + frontend
+pnpm --filter frontend run build
 pnpm --filter backend run test:pdf
-node backend/testOrchestrator.js
+node backend/testOrchestrator.js   # test du pipeline complet
 ```
+
+---
 
 ## Déploiement (VPS DigitalOcean — Caddy + systemd)
 
-Pattern identique aux autres sites Laurent (bullionradar.fr, streetbodies.com) :
-build côté runner/poste, puis rsync vers le VPS et restart systemd. Le `.env` vit sur le VPS (jamais en CI).
+Même pattern que les autres sites Laurent (bullionradar.fr, streetbodies.com) :
+**build hors VPS** (poste/runner) → `rsync` code + `.next` + `node_modules` → restart systemd.
+Le `.env` est copié une fois sur le VPS, jamais en CI.
 
 - Guide complet : [`deploy/README.md`](deploy/README.md)
 - Bloc Caddy : [`deploy/Caddyfile.agentrecruteur.example`](deploy/Caddyfile.agentrecruteur.example)
 
-Résumé :
-```bash
-# Sur le VPS (user root ou digest) — une seule fois :
-#   /srv/agentrecruteur + systemd (agentrecruteur-frontend/backend) + bloc Caddy
-
-# Depuis ce poste / le CI :
-rsync -az --delete --exclude '.git' --exclude '.env*' \
-  ./ frontend/ user@VPS:/srv/agentrecruteur/
-ssh user@VPS 'cd /srv/agentrecruteur && pnpm install && cd frontend && pnpm run build && sudo systemctl restart agentrecruteur-frontend agentrecruteur-backend'
+```
+agentrecruteur.fr, www.agentrecruteur.fr {
+  encode gzip
+  @api path /api/*
+  handle @api { reverse_proxy 127.0.0.1:3001 }   # Express
+  handle     { reverse_proxy 127.0.0.1:3000 }   # Next.js
+}
 ```
 
-> CORS : le backend accepte toutes les origines en dev — restreindre à `https://agentrecruteur.fr` en prod si besoin.
+---
 
-## État
+## Évolutions / chantiers ouverts
 
-- ✅ Pipeline complet, API, frontend, tests e2e (Playwright) — build et typecheck verts (2026-08-11).
-- ✅ Stockage Atlas persistant + fallback mémoire (dégradation gracieuse).
-- ⚠️ Next 15 → 16 et LangChain 0.3 → 1.x : montées volontairement différées (breaking changes, aucun bénéfice démo).
+- Provisionner un cluster MongoDB Atlas M0 et renseigner `MONGODB_ATLAS_URI` (persistance active).
+- Ajouter de vraies sessions multi-recruteurs (auth sur invitation) quand le produit se paie.
+- Analytics : scoring comparatif, recherche full-text sur les CV (index textes déjà déclarés).
+- Montées mineures de versions (Next 16, LangChain 0.5) différées volontairement (breaking changes sans gain démo).
+
+---
+
+## Contact & accès démo
+
+- Auteur : Laurent Knauss (créateur) — les accès de test s'obtiennent sur demande.
+- Démonstration publique : <https://agentrecruteur.fr> (mode démo protégé).

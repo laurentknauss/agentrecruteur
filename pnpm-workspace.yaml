@@ -2,7 +2,7 @@ packages:
   - "frontend"
   - "backend"
 allowBuilds:
-  canvas: true
+  canvas: false
   esbuild: true
   sharp: true
   unrs-resolver: true

@@ -1,0 +1,5 @@
+node scripts/scan-secrets.mjs
+pnpm --filter backend run typecheck:fast
+pnpm --filter frontend run typecheck:fast
+pnpm --filter frontend run build
+pnpm audit --audit-level=high || echo "⚠️ pre-push: pnpm audit non bloquant (vulns transitives outil — cf. README Qualité & sécurité)"
