@@ -2,7 +2,7 @@
 
 export function Footer() {
   return (
-    <footer className="relative border-t border-black/10 bg-[#f5f4ef]" data-devbox="footer">
+    <footer className="relative border-t border-black/10 bg-[#f5f4ef]">
       <div className="mx-auto max-w-6xl px-4 py-12">
         <div className="flex flex-col items-center gap-4 text-center">
           {/* Brand */}
