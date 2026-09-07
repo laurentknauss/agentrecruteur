@@ -11,6 +11,7 @@
 - **Persistance** : MongoDB Atlas (mongoose 8) avec repli automatique en mémoire si Atlas est injoignable.
 - **Langue** : interface et analyse en français ; conformité RGPD ; CV au format français.
 - **Choix d'architecture assumé** : pipeline « extraire puis analyser » (orchestrator-worker), **pas de RAG** — un CV tient intégralement dans le contexte LLM, le retrieval n'apporterait rien.
+- **Dépôt** : `github.com/laurentknauss/agentrecruteur` (**public**, revue CTO) — branche par défaut `main` protégée.
 
 ## Commandes
 
@@ -56,22 +57,41 @@ Règles de sécurité :
 - **Jamais** de credentials dans les fichiers trackés (`.env` est dans `.gitignore`).
 - Tout secret exposé dans un fichier tracké doit être purgé **et** révoqué côté fournisseur.
 
-## État actuel (2026-08-11)
+## GitHub & workflow (process imposé — 2026-09-07)
+
+- Remote : `origin → git@github.com:laurentknauss/agentrecruteur.git` — **repo public**.
+- Branche `main` **protégée** : toute modif passe par une **Pull Request** + checks verts obligatoires : `Secret Scan`, `Typecheck (tsgo)`, `Build Frontend (Next.js)` (strict = branche à jour). Force-push et suppression de `main` interdits.
+- CI GitHub Actions (`.github/workflows/ci.yml`, sur push & PR) : scan secrets (bloquant) → typecheck tsgo (backend+frontend) → build Next ; `pnpm audit` **informatif** (`continue-on-error`).
+- Hooks Husky locaux : `pre-commit` = scan secrets (diff indexé) ; `pre-push` = scan secrets + typecheck tsgo + build Next + audit (non bloquant). Scanner : `node scripts/scan-secrets.mjs [--staged]`.
+- **Aucun déploiement automatique en CI** — déploiement VPS manuel (build local → rsync → systemd), cf. `deploy/README.md`.
+- Mode démo par défaut : `DEMO_LOCK=1` coupe les endpoints LLM (403) → zéro coût OpenAI en public.
+
+### Workflow imposé aux agents IA
+
+1. Toujours une branche : `git checkout -b feat/…`
+2. Commits (hooks pre-commit/pre-push actifs — ne pas les contourner).
+3. `git push origin feat/…` puis `gh pr create --fill`.
+4. Attendre les checks verts puis `gh pr merge --squash --delete-branch` (0 review requise).
+
+## État actuel (2026-09-07)
 
 ### ✅ Fait
-- Migration `MongoCandidateStore` complète : CRUD (upsert/get/has/delete/list/listSummary/count/clear), handlers API async, sélection du backend au démarrage avec dégradation gracieuse.
-- Typecheck TS 7 (tsgo) vert : `module: node16`, `moduleResolution: node16` (anciens `baseUrl`/`paths` supprimés), `bufferMaxEntries` (obsolète mongoose 8) retiré.
-- Credentials purgés du CLAUDE.md — jamais commités dans l'historique.
+- Migration `MongoCandidateStore` complète : CRUD, handlers API async, sélection au démarrage avec dégradation gracieuse.
+- Typecheck TS 7 (tsgo) vert (`module: node16`, `moduleResolution: node16`).
+- Credentials purgés du CLAUDE.md (supprimé) — jamais commités dans l'historique.
+- **Repo GitHub public créé** (`agentrecruteur`) — historique secret-free vérifié ; README réécrit pour lectorat CTO.
+- **CI + Husky + protection de branche `main`** (PR + checks verts) — voir section GitHub ci-dessus.
+- **Mode démo vitrine** : `DEMO_LOCK=1` + header « Sign up / Login » (modal contact, aucune auth).
+- **DNS** : zone `agentrecruteur.fr` créée chez DigitalOcean (via doctl) — A `@` + A `www` → 209.38.207.109 ; NS basculés chez GoDaddy vers ns1/ns2/ns3.digitalocean.com (propagation en cours).
+- Docs déploiement VPS : `deploy/README.md`, `deploy/Caddyfile.agentrecruteur.example`, checklist `TODO.md`.
 
 ### ⚠️ À faire
-- **Provisions** : recréer un cluster Atlas M0 gratuit (l'ancien `testcluster` est supprimé — DNS NXDOMAIN) et mettre à jour `MONGODB_ATLAS_URI`.
-- Vérifier/régénérer `OPENAI_API_KEY` (à créer sur platform.openai.com).
-- Mise à jour des versions mineures (voir `pnpm outdated`) ; Next 15 → 16 et LangChain 0.3 → 0.5 à évaluer avec leurs breaking changes.
-- Repo local sans remote : pousser sur GitHub/GitLab (privé ou public) une fois la vérif credentials faite.
-- README racine à rédiger ; seed de démo (Sophie Martin) à automatiser.
+- **Déploiement VPS** : Caddy + systemd + rsync (build local) — cf. `deploy/README.md` + `TODO.md` (convergence NS incluse).
+- **Provisions** : cluster Atlas M0 + `OPENAI_API_KEY` pour sortir du mode démo (retirer `DEMO_LOCK`).
+- Audit outil non bloquant : vulns transitives (Next→postcss, unpdf→canvas→tar) ; montées mineures (Next 16, LangChain 0.5) évaluées plus tard.
 
 ## Prochaines évolutions (non prioritaires pour la démo)
 
-- Support multi-recruteurs / multi-sessions (historique par utilisateur).
+- Support multi-recruteurs / multi-sessions (historique par utilisateur) — auth sur invitation.
 - Analytics avancés : scoring et comparaison de candidats.
 - Recherche full-text sur les CV via les index textes déjà déclarés (`profile.name`, `profile.skills`).

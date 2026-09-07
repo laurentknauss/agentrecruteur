@@ -26,14 +26,15 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="comment" className="relative py-16 px-4 bg-transparent scroll-mt-24">
+    <section id="comment" className="relative py-16 px-4 bg-[#f5f4ef] scroll-mt-24" data-devbox="how-it-works">
       <div className="max-w-6xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-3xl sm:text-4xl font-bold text-white text-center mb-12"
+          className="relative text-3xl sm:text-4xl font-bold text-black text-center mb-12"
+          data-devbox="titre-how-it-works"
         >
           Comment ça marche
         </motion.h2>
@@ -46,13 +47,14 @@ export function HowItWorks() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.15 }}
-              className="rounded-2xl border border-slate-700 bg-slate-700/40 p-6 text-center"
+              className="relative rounded-2xl border border-slate-700 bg-slate-700/40 p-6 text-center"
+              data-devbox={`etape-${index + 1}-${step.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
             >
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white text-slate-600 mb-4">
                 <step.icon className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
-              <p className="text-sm text-zinc-300 leading-relaxed">{step.description}</p>
+              <h3 className="text-lg font-semibold text-black mb-2">{step.title}</h3>
+              <p className="text-sm text-black leading-relaxed">{step.description}</p>
             </motion.div>
           ))}
         </div>

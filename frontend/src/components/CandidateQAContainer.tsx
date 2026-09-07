@@ -174,7 +174,8 @@ function CandidateQAContainer() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="max-w-6xl mx-auto mb-12"
+          className="relative max-w-6xl mx-auto mb-12"
+          data-devbox="zone-upload-cv"
         >
           <CardSpotlight className="h-fit group">
             <div className="relative z-20">
@@ -222,7 +223,8 @@ function CandidateQAContainer() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -50 }}
               transition={{ duration: 0.5 }}
-              className="max-w-6xl mx-auto mb-12"
+              className="relative max-w-6xl mx-auto mb-12"
+              data-devbox="resultats-profil"
             >
               <CardSpotlight className="h-fit group">
                 <div className="relative z-20" data-testid="profile-display">
@@ -298,7 +300,8 @@ function CandidateQAContainer() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
-            className="mt-12"
+            className="relative mt-12"
+            data-devbox="qa-conversation"
           >
             <CardSpotlight className="group">
               <div className="relative z-20">

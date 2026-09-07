@@ -1,7 +1,6 @@
 "use client"
 
 import { motion } from "motion/react"
-
 const textRevealVariants = {
   hidden: { y: "100%" },
   visible: (i: number) => ({
@@ -14,23 +13,43 @@ const textRevealVariants = {
   }),
 }
 
+const CREME = "#f5f4ef"
+
 export function Hero() {
   return (
-    <section className="relative flex flex-col items-center justify-center px-4 pt-60 pb-12 overflow-hidden">
-      {/* Background — identique au fond global */}
-      
+    <section
+      className="relative flex flex-col items-center justify-center px-4 pt-80 pb-16 overflow-hidden"
+      style={{
+        backgroundImage: "url('/bg-camo.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundColor: "oklch(0.45 0.06 105)",
+      }}
+      data-devbox="hero"
+    >
+      {/* Voile kaki semi-transparent pour la lisibilité */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ backgroundColor: "oklch(0.35 0.05 105)", opacity: 0.45 }}
+        data-devbox="voile-hero"
+      />
 
-      <div className="relative z-10 max-w-5xl mx-auto text-center">
+      <div className="relative z-10 w-full max-w-5xl mx-auto text-center">
         {/* Headline with text mask animation */}
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6">
-          <span className="block overflow-hidden">
+        <h1
+          className="relative text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6"
+          style={{ textShadow: "0 2px 10px rgba(0,0,0,0.45)" }}
+          data-devbox="hero-titre"
+        >
+          <span className="block overflow-hidden relative" data-devbox="slogan-ligne-1">
             <motion.span className="block" variants={textRevealVariants} initial="hidden" animate="visible" custom={0}>
               Laissez votre agent IA présélectionner les candidats.
             </motion.span>
           </span>
-          <span className="block overflow-hidden">
+          <span className="block overflow-hidden relative" data-devbox="slogan-ligne-2">
             <motion.span
-              className="block text-black"
+              className="block"
               variants={textRevealVariants}
               initial="hidden"
               animate="visible"
@@ -46,7 +65,9 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-lg sm:text-xl text-white max-w-2xl mx-auto mb-10 leading-relaxed"
+          className="relative text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
+          style={{ color: CREME, textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
+          data-devbox="hero-sous-titre"
         >
           Notre agent scanne et analyse chaque CV en quelques secondes : structuration, score et
           pré-sélection automatiques. Gagnez des heures par recrutement et concentrez-vous sur les décisions.
@@ -57,7 +78,9 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.7 }}
-          className="text-sm text-zinc-500"
+          className="relative text-sm"
+          style={{ color: "rgba(245,244,239,0.9)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}
+          data-devbox="hero-badge-techno"
         >
           PDF → Profil structuré → Score · Q&amp;A
         </motion.p>
