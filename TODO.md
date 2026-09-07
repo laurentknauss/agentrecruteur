@@ -2,7 +2,7 @@
 
 ## 0) Rappels (faits vérifiés)
 - [x] bullionradar.fr — NS: ns1/ns2/ns3.digitalocean.com (DO autorité), A: 209.38.207.109 (VPS), Server: Caddy.
-- [x] agentrecruteur.fr — NS: ns81/ns82.domaincontrol.com (GoDaddy autorité), A: 3.33.130.190, 15.197.148.33 (AWS), DO: aucune zone.
+- [x] agentrecruteur.fr — NS: **ns1/ns2/ns3.digitalocean.com** (NS changés chez GoDaddy ✅), A: 3.33.130.190, 15.197.148.33 (AWS, encore à remplacer chez DO), DO: zone à créer.
 
 Commandes de vérif (références):
 ```bash
@@ -21,9 +21,10 @@ Commandes de vérif (références):
  dig @ns1.digitalocean.com agentrecruteur.fr A +short
 ```
 
-## 1) Choisir la voie DNS (une seule)
-- [ ] Option A — Garder GoDaddy comme autorité DNS (simple & rapide)
-- [ ] Option B — Reproduire le schéma BullionRadar (NS DigitalOcean + zone DO)
+## 1) Voie DNS choisie
+- [x] Option B — Reproduire le schéma BullionRadar (NS DigitalOcean + zone DO)
+  - ✅ NS changés chez GoDaddy → ns1/ns2/ns3.digitalocean.com (fait par Laurent)
+- [ ] Option A — Garder GoDaddy comme autorité DNS (non retenue)
 
 ## 2) Option A — GoDaddy uniquement (DSN géré chez GoDaddy)
 - [ ] Mettre à jour les enregistrements A chez GoDaddy (zone agentrecruteur.fr)
@@ -35,11 +36,10 @@ Commandes de vérif (références):
   - [ ] `dig A agentrecruteur.fr +short` → 209.38.207.109
   - [ ] `curl -I https://agentrecruteur.fr | grep -i ^server` → `Server: Caddy`
 
-## 3) Option B — Comme BullionRadar (NS DO + zone DO)
-- [ ] Chez GoDaddy (agentrecruteur.fr) — changer les NS vers:
-  - [ ] ns1.digitalocean.com
-  - [ ] ns2.digitalocean.com
-  - [ ] ns3.digitalocean.com
+## 3) Option B — Suite (zone DO + A records)
+
+⚠️ NS déjà changés chez GoDaddy ✅ — reste à créer la zone DO.
+
 - [ ] Chez DigitalOcean → Networking → Domains — ajouter `agentrecruteur.fr`
   - [ ] Créer A agentrecruteur.fr → 209.38.207.109 (TTL 300s recommandé)
   - [ ] Créer A www.agentrecruteur.fr → 209.38.207.109 (TTL 300s recommandé)
@@ -83,9 +83,6 @@ curl -i -H 'Content-Type: application/json' \
 - [ ] En cas de passage à NS DO (Option B), **obligatoire** d’ajouter la zone et les A chez DO, sinon le domaine ne résoudra pas
 
 ## 7) Livrables de configuration (copier-coller)
-- **GoDaddy (Option A)** — Zone agentrecruteur.fr:
-  - Type A — Name: `@` — Value: `209.38.207.109` — TTL: `300`
-  - Type A — Name: `www` — Value: `209.38.207.109` — TTL: `300`
 
 - **DigitalOcean (Option B)** — Zone agentrecruteur.fr:
   - Type A — Hostname: `@` — Will direct to: `209.38.207.109` — TTL: `300`
