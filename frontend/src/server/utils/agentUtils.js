@@ -1,6 +1,6 @@
-
 // utility functions - including the safe JSON parser 
 import PDFParser from "pdf2json";
+import { MAX_PDF_PAGES, MAX_RESUME_TEXT_CHARS } from "../limits.js";
 
 /** 
 * @param { string | buffer } 
@@ -26,14 +26,34 @@ export async function extractPDFText(input) {
       pdfParser.on("pdfParser_dataError", err => reject(err.parserError));
       pdfParser.on("pdfParser_dataReady", pdfData => {
         try {
-          let text = "";
-          if (pdfData && pdfData.Pages) {
-            text = pdfData.Pages
-              .map(page =>
-                page.Texts.map(t => decodeURIComponent(t.R[0].T)).join(" ")
-              )
-              .join("\n");
+          const pages = Array.isArray(pdfData?.Pages) ? pdfData.Pages : [];
+
+          // Borne 1 : nombre de pages — évite d'envoyer un document entier au LLM.
+          if (pages.length > MAX_PDF_PAGES) {
+            const error = new Error(
+              `PDF trop long : ${pages.length} pages (maximum ${MAX_PDF_PAGES}).`
+            );
+            error.code = "PDF_TOO_LONG";
+            reject(error);
+            return;
           }
+
+          const text = pages
+            .map(page =>
+              page.Texts.map(t => decodeURIComponent(t.R[0].T)).join(" ")
+            )
+            .join("\n");
+
+          // Borne 2 : volume de caractères transmis au LLM.
+          if (text.length > MAX_RESUME_TEXT_CHARS) {
+            const error = new Error(
+              `PDF trop volumineux : ${text.length} caractères extraits (maximum ${MAX_RESUME_TEXT_CHARS}).`
+            );
+            error.code = "PDF_TOO_LONG";
+            reject(error);
+            return;
+          }
+
           console.log(`\t   ✅ Util: Successfully extracted text (${text.length} chars).`);
           resolve(text);
         } catch (parseError) {

@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# gabarit de configuration versionné (aucun secret, valeurs vides)
+!.env.example
 
 # vercel
 .vercel
