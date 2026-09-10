@@ -1,0 +1,47 @@
+version: 2
+
+# Mises à jour automatisées : c'est le maillon qui manquait lors de l'incident du 07/09/2026
+# (Next 15.4.6 épinglé sans chemin de mise à jour, alors que 15.4.8 corrigeait la CVE-2025-55182).
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Paris
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # next/react doivent rester alignés : une PR, pas deux.
+      next-react:
+        patterns:
+          - next
+          - react
+          - react-dom
+          - eslint-config-next
+          - "@types/react"
+          - "@types/react-dom"
+      # Correctifs et mineures des dépendances de production : regroupés pour un merge rapide.
+      prod-patch:
+        dependency-type: production
+        update-types:
+          - patch
+          - minor
+    ignore:
+      # Les canaries ne doivent jamais arriver automatiquement.
+      - dependency-name: next
+        versions:
+          - "*-canary.*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Paris
+    commit-message:
+      prefix: "chore(ci)"
