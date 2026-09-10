@@ -1,4 +1,6 @@
 node scripts/scan-secrets.mjs
 pnpm --filter frontend run typecheck:fast
 pnpm --filter frontend run build
-pnpm audit --audit-level=high || echo "⚠️ pre-push: pnpm audit non bloquant (vulns transitives outil)"
+# BLOQUANT : une vulnérabilité high+ empêche le push (incident 07/09/2026 — la CVE-2025-55182
+# est restée exploitable 9 mois alors que le correctif existait depuis décembre 2025).
+pnpm audit --audit-level=high

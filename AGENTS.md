@@ -56,9 +56,10 @@ Règles de sécurité :
 
 - Remote : `origin → git@github.com:laurentknauss/agentrecruteur.git` — **repo public**.
 - Branche `main` **protégée** : toute modif passe par une **Pull Request** + checks verts obligatoires : `Secret Scan`, `Typecheck (tsgo)`, `Build Frontend (Next.js)` (strict = branche à jour). Force-push et suppression de `main` interdits.
-- CI GitHub Actions (`.github/workflows/ci.yml`, sur push & PR) : scan secrets (bloquant) → typecheck tsgo (backend+frontend) → build Next ; `pnpm audit` **informatif** (`continue-on-error`).
-- Hooks Husky locaux : `pre-commit` = scan secrets (diff indexé) ; `pre-push` = scan secrets + typecheck tsgo + build Next + audit (non bloquant). Scanner : `node scripts/scan-secrets.mjs [--staged]`.
-- **Aucun déploiement automatique en CI** — déploiement VPS manuel (build local → rsync → systemd), cf. `deploy/README.md`.
+- CI GitHub Actions (`.github/workflows/ci.yml`, sur push & PR) : scan secrets (bloquant) → typecheck tsgo → build Next → **`pnpm audit --audit-level=high` bloquant** depuis le 2026-09-10 (il était `continue-on-error`, ce qui a laissé passer la CVE-2025-55182) → job **Snyk** (effectif dès que le secret `SNYK_TOKEN` est posé sur le repo).
+- **Dependabot** (`.github/dependabot.yml`) : PR hebdomadaires groupées (`next`+`react`+`eslint-config-next` ensemble, correctifs/minor prod), canaries Next exclues — c'est le maillon qui manquait : aucun correctif de sécurité ne pouvait arriver tout seul.
+- Hooks Husky locaux : `pre-commit` = scan secrets (diff indexé) ; `pre-push` = scan secrets + typecheck tsgo + build Next + **audit bloquant** (high+). Scanner : `node scripts/scan-secrets.mjs [--staged]`.
+- **Aucun déploiement automatique en CI** — déploiement VPS manuel : build local → rsync du **bundle standalone** → systemd (cf. `deploy/README.md` §5).
 - Mode démo par défaut : `DEMO_LOCK=1` coupe les endpoints LLM (403) → zéro coût OpenAI en public.
 
 ### Workflow imposé aux agents IA
@@ -110,7 +111,8 @@ Règles :
 
 ### ✅ État vérifié (2026-09-10)
 
-- `agentrecruteur.fr` + `www` : DNS DO, TLS Caddy, `HTTP/2 200` ; unité `agentrecruteur.service` (port **3004**, racine `/srv/agentrecruteur`, copie rsync du contenu de `frontend/`).
+- `agentrecruteur.fr` + `www` : DNS DO, TLS Caddy, `HTTP/2 200` ; unité `agentrecruteur.service` — port **3004** sur **127.0.0.1** (Caddy seul en frontal), racine `/srv/agentrecruteur/frontend`, **bundle standalone** (`output: "standalone"`, 47 Mo, dépendances tracées incluses), `NRestarts=0`.
+- **Piège déploiement (2026-09-10)** : ne **jamais** rsync le `node_modules` du poste de build ni installer les dépendances côté serveur. Turbopack référence les externes via `.next/node_modules/<pkg>-<hash> → ../../../node_modules/.pnpm/<pkg>@<version>_<peer>/…`, chemin **relatif au poste de build** : un `pnpm install` serveur résout autrement (`mongoose@8.24.4` au lieu de `8.24.3_supports-color@8.1.1`) → `Cannot find module mongoose-<hash>` → **500 sur toutes les routes API**. `output: "standalone"` supprime la classe de panne.
 - Verrou démo opérationnel en prod : `POST /api/upload-cv` et `POST /api/candidate/:id/ask` → **403**.
 - Distant git = `main` seulement.
 - **Sécurité (2026-09-10)** : intrusion confirmée le 07/09 via la RCE Next 15.4.6 (service exécuté **en root**) — confinement et reboot vérifiés, correctif **Next 16.3.4** ; post-mortem, décisions et travaux restants (rotation des secrets, service non-root, access logs Caddy, durcissement du droplet) dans `TODO.md` §9.

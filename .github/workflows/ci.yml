@@ -47,7 +47,8 @@ jobs:
   audit:
     name: pnpm audit (high)
     runs-on: ubuntu-latest
-    continue-on-error: true # informatif — ne bloque pas les merges (aligné bullion-radar : gate sécurité = scan secrets bloquant)
+    # BLOQUANT depuis le 2026-09-10 : la CVE-2025-55182 est restée exploitable 9 mois alors que
+    # le correctif existait depuis décembre 2025 — un audit non bloquant ne pouvait pas l'arrêter.
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -57,3 +58,34 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level=high
+
+  snyk:
+    name: Snyk (dépendances)
+    runs-on: ubuntu-latest
+    # Effectif dès que le secret SNYK_TOKEN est configuré sur le repo
+    # (Settings → Secrets and variables → Actions). Sans lui, le job est ignoré (pas d'échec).
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Scan Snyk (high+)
+        if: env.SNYK_TOKEN != ''
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects --severity-threshold=high
+      - name: Monitoring Snyk (main)
+        if: env.SNYK_TOKEN != '' && github.ref == 'refs/heads/main'
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor
+          args: --all-projects

@@ -149,6 +149,8 @@ Pas posé dans le code, inscription faite le 2026-09-08. Aucun engagement de cod
 
 **Reste à faire (par ordre de priorité)** :
 
+- [x] **Déploiement du correctif en production** (2026-09-10) : Next **16.3.4** en **bundle standalone** (`output: "standalone"`, 47 Mo, dépendances tracées incluses), service sur **127.0.0.1:3004**, `NRestarts=0`, endpoints vérifiés (accueil/candidates 200, upload 403, 404).
+- [x] **Garde-fous dépendances** (2026-09-10) : `pnpm audit --audit-level=high` **bloquant** (CI + pre-push) et ajouté aux checks obligatoires de `main` ; **Dependabot** (`.github/dependabot.yml`, alertes + correctifs de sécurité automatiques activés sur le repo) ; job **Snyk** en CI (effectif dès que le secret `SNYK_TOKEN` est posé).
 - [ ] **Rotation des secrets exposés** (~3 jours de root) : clé OpenAI, credentials Atlas ; token Sentry + bot Telegram (`/root/.sentry-alert.env`) ; clés providers Hermes (`/root/.hermes/`)
 - [ ] `agentrecruteur.service` : passer du service **root** à un utilisateur dédié + durcissement systemd (`NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`, `RestrictSUIDSGID`)
 - [ ] Activer les **access logs Caddy** (aucun log HTTP conservé → vecteur non prouvé à 100 %)
