@@ -1,3 +1,9 @@
 agentrecruteur.fr, www.agentrecruteur.fr {
+  # Limite de corps de requête au niveau du proxy : première barrière avant Next.js
+  # (l'application pré-contrôle elle aussi Content-Length et répond 413 au-delà).
+  request_body {
+    max_size 11MB
+  }
+
   reverse_proxy 127.0.0.1:3004
 }

@@ -38,7 +38,7 @@ Constaté par le job CI `pnpm audit (high)` (et confirmé localement, 2026-09-10
 
 - Version installée : `next 15.4.6`, `react`/`react-dom` **19.1.0** (React affecté : 19.0.0–19.2.0, corrigé en 19.2.1).
 - Version **déployée en prod** : `next 15.4.6` (vérifié sur le VPS) → site public exposé, exploitation **sans authentification** (`AV:N/AC:L/PR:N/UI:N`, CWE-502 désérialisation).
-- Le verrou démo (`DEMO_LOCK`) ne protège **pas** de cette faille : elle est dans le protocole RSC, pas dans les endpoints LLM.
+- Le verrou démo (retiré depuis, cf. §4) ne protégeait **pas** de cette faille : elle est dans le protocole RSC, pas dans les endpoints LLM.
 
 **Actions** :
 - [ ] Monter `next` à **≥15.5.24** (dernière 15.5.x : 15.5.25) et `react`/`react-dom` à **19.2.1** (lire les notes de version 15.4 → 15.5 avant, cf. règle « pas de dépréciation laissée »).
@@ -83,7 +83,7 @@ Séquence (workflow imposé) :
 
 ```bash
 git push -u origin feat/conversation-page
-gh pr create --fill                      # checks : Secret Scan, Typecheck tsgo, Build Next
+gh pr create --fill                      # checks : Secret Scan, Typecheck tsgo, Tests (vitest), Build Next
 gh pr merge --squash --delete-branch
 # déploiement : cf. deploy/README.md (build local → rsync → systemctl restart agentrecruteur.service)
 ```
@@ -91,10 +91,12 @@ gh pr merge --squash --delete-branch
 ## 4) 🟡 Provisions & sortie du mode démo
 
 - [x] `OPENAI_API_KEY` présente dans `/srv/agentrecruteur/.env.local`
-- [x] `DEMO_LOCK=1` + `NEXT_PUBLIC_DEMO_LOCK=1` actifs (403 en prod, vérifié)
-- [ ] Atlas utilisable **depuis le VPS** (bloquant, cf. §2) — sans lui, sortir du mode démo enverrait
-  les candidatures dans un stockage volatil.
-- [ ] Décider de la sortie de démo (auth / invitation) — non planifié, cf. « Prochaines évolutions » de `AGENTS.md`.
+- [x] Verrou démo retiré côté code (branche `sans-verrou-demo-pour-production`) : plus aucune variable de verrou.
+- [ ] `ADMIN_TOKEN` (+ `ADMIN_OWNER_ID` optionnel) à poser dans `/srv/agentrecruteur/.env.local`
+  **avant** déploiement de la branche — sans lui, les routes de données répondent 503 (fail-closed).
+- [ ] Atlas utilisable **depuis le VPS** (bloquant, cf. §2) — sans lui, les candidatures partent dans
+  un stockage volatil (le mode de stockage est renvoyé dans la réponse d'upload).
+- [ ] Remplacer le garde-fou `ADMIN_TOKEN` par Clerk (champ `ownerId` et filtrage déjà en place).
 
 ## 5) 🟡 Branches
 
