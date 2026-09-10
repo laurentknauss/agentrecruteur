@@ -31,6 +31,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter frontend run typecheck:fast
 
+  test:
+    name: Tests (vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
   build:
     name: Build Frontend (Next.js)
     runs-on: ubuntu-latest
