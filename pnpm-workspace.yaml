@@ -1,7 +1,8 @@
 packages:
   - "frontend"
 allowBuilds:
-  canvas: false
   esbuild: true
   sharp: true
   unrs-resolver: true
+overrides:
+  "js-yaml": "^4.3.2"

@@ -6,11 +6,11 @@
 ## Vue d'ensemble
 
 - **Produit** : « CV Inspector » — assistant IA pour l'élagage et l'analyse préliminaire des candidatures (recruteurs français).
-- **Stack** : app **unique Next.js 15** (React 19 + Tailwind 4) — l'UI **et** l'API (`/api/*`) vivent dans le même serveur (App Router) ; un seul process : port 3000 en dev, **3004 en production** (`agentrecruteur.service` sur le VPS).
+- **Stack** : app **unique Next.js 16** (React 19.2 + Tailwind 4, **Turbopack** par défaut, ESLint **flat config**) — l'UI **et** l'API (`/api/*`) vivent dans le même serveur (App Router) ; un seul process : port 3000 en dev, **3004 en production** (`agentrecruteur.service` sur le VPS).
 - **LLM** : GPT-5.5 via l'API OpenAI officielle (Responses API, client `openai`).
 - **Persistance** : MongoDB Atlas (mongoose 8) avec repli automatique en mémoire si Atlas est injoignable.
 - **Langue** : interface et analyse en français ; conformité RGPD ; CV au format français.
-- **Choix d'architecture assumé** : pipeline « extraire puis analyser » (orchestrator-worker), **pas de RAG** — un CV tient intégralement dans le contexte LLM, le retrieval n'apporterait rien.
+- **Choix d'architecture assumé** : pipeline « extraire puis analyser », **pas de RAG** — un CV tient intégralement dans le contexte LLM, le retrieval n'apporterait rien. L'ancien orchestrateur LangChain (`RunnableSequence`) a été supprimé le 2026-09-10 : orphelin depuis la refonte mono-port (#3), il ne servait qu'à tirer `langchain`/`langsmith` (1 vuln *high* + 3 *moderate*).
 - **Dépôt** : `github.com/laurentknauss/agentrecruteur` (**public**, revue CTO) — branche par défaut `main` protégée.
 
 ## Commandes
@@ -22,16 +22,18 @@ Depuis la racine du monorepo (`pnpm` obligatoire) :
 | `pnpm dev` | Serveur unique Next.js sur `:3000` (UI + API) |
 | `pnpm build` / `pnpm start` | Build / prod (port 3000) |
 | `pnpm typecheck` | Typecheck (tsgo / TS 7) |
+| `pnpm lint` | ESLint (flat config) — `next lint` a été retiré en Next 16 |
+| `pnpm test` | Vitest (stores, handlers API) |
 
 ## Architecture
 
 ```
-PDF (upload) → extraction pdf2json → StructuringWorker (PDF→JSON)
-  → SkillsAnalysisWorker → ExperienceWorker → ScreeningWorker → MatchingWorker (option)
+PDF (upload) → extractPDFText (pdf2json) → structuringWorker (PDF→JSON)
+  → comprehensiveResumeAnalyzer (runGPT5Model, GPT-5.5 : compétences, expérience, screening)
   → CandidateRepository (Mongo Atlas | mémoire) → route handlers App Router → UI Next.js
 ```
 
-- **Domaine (ex-backend)** : `frontend/src/server/` (orchestrateur `orchestrator/recruitingOrchestrator.js`, workers `workers/`, pdf, llm, store, database).
+- **Domaine (ex-backend)** : `frontend/src/server/` (workers `workers/` — `comprehensiveResumeAnalyzer.js`, `structuringWorker.js` ; `pdf.ts`, `llm.ts`, `clients/openaiClient.js`, `store.ts`, `database/`, `models/`, `utils/`).
 - **API** : route handlers App Router dans `frontend/src/app/api/` (`upload-cv`, `candidate/[id]`, `candidate/[id]/ask`, `candidates`, `health`) — plus de serveur Express séparé.
 - **Stockage** : interface `CandidateRepository` (`frontend/src/server/store.ts`) ; sélection Atlas/mémoire via `frontend/src/server/storage-init.ts`, exposée par `GET /api/health` (`storage`).
 
@@ -104,13 +106,14 @@ Règles :
 - **🔴 Code non déployé** : `feat/conversation-page` (+ `docs/braintrust-backlog`) locales, jamais poussées ;
   build prod du 2026-09-07 → `https://agentrecruteur.fr/conversation/<id>` = 404.
 - **🟡 Backlog** : évals LLM Braintrust (aucun code engagé).
-- Audit outil non bloquant : vulns transitives (Next→postcss, unpdf→canvas→tar) ; montées mineures (Next 16, LangChain 0.5) évaluées plus tard.
+- **Audit dépendances : 0 vulnérabilité connue** (2026-09-10, `pnpm audit`) — 12 auparavant (2 *critical*, 6 *high*), corrigées par Next 16, suppression de `unpdf` (`canvas → node-pre-gyp → tar`) et de `langchain`/`@langchain/*` (`langsmith`, `uuid`).
 
 ### ✅ État vérifié (2026-09-10)
 
 - `agentrecruteur.fr` + `www` : DNS DO, TLS Caddy, `HTTP/2 200` ; unité `agentrecruteur.service` (port **3004**, racine `/srv/agentrecruteur`, copie rsync du contenu de `frontend/`).
 - Verrou démo opérationnel en prod : `POST /api/upload-cv` et `POST /api/candidate/:id/ask` → **403**.
 - Distant git = `main` seulement.
+- **Sécurité (2026-09-10)** : intrusion confirmée le 07/09 via la RCE Next 15.4.6 (service exécuté **en root**) — confinement et reboot vérifiés, correctif **Next 16.3.4** ; post-mortem, décisions et travaux restants (rotation des secrets, service non-root, access logs Caddy, durcissement du droplet) dans `TODO.md` §9.
 
 ## Bilan de session (2026-09-07)
 

@@ -119,7 +119,8 @@ Pas posé dans le code, inscription faite le 2026-09-08. Aucun engagement de cod
 
 ## 7) 🟡 Dettes non bloquantes
 
-- [ ] Audit outil : vulns transitives (Next→postcss, unpdf→canvas→tar) ; montées mineures (Next 16, LangChain 0.5) — évaluées plus tard.
+- [x] Audit outil — **0 vulnérabilité** au 2026-09-10 (avant : 12, dont 2 *critical* et 6 *high*). Traitement : `next` 15.4.6 → **16.3.4** (résout `postcss` + `sharp`), `unpdf` supprimé (`canvas → node-pre-gyp → tar@6.2.1`), `langchain`/`@langchain/core`/`@langchain/openai` supprimés avec l'orchestrateur mort qu'ils servaient (résout `langsmith` + `uuid`), `js-yaml` forcé en `^4.3.2`, `@types/node` 20 → 24.
+- [ ] `eslint@9.39.5` : npm le marque « no longer supported » (eslint 10 est sorti). Bloqué **en amont** (vérifié 2026-09-10) : `typescript-eslint@8.46`, `eslint-plugin-react-hooks@7`, `eslint-plugin-import`, `eslint-plugin-jsx-a11y` plafonnent leur peer à `^9` — `eslint-config-next@16.3.4` accepte `>=9` mais la chaîne de plugins ne suit pas encore.
 - [ ] (Le cas échéant) base `backend/` : `backend/.env` existe encore alors que le serveur Express a été supprimé (§ _Architecture_ de `AGENTS.md`) — vérifier qu'il n'est plus référencé et le retirer du disque local.
 
 ## 8) Rappels ops
@@ -127,3 +128,35 @@ Pas posé dans le code, inscription faite le 2026-09-08. Aucun engagement de cod
 - Ne **jamais** committer sur `main` : branche + PR + checks verts, puis `gh pr merge --squash --delete-branch`.
 - Déploiement : build **local** → rsync → `systemctl restart agentrecruteur.service` (pas de déploiement CI).
 - Secrets : jamais dans un fichier tracké (`.env.local` uniquement) ; un secret exposé doit être purgé **et** révoqué.
+
+## 9) 🔴 SÉCURITÉ — intrusion confirmée sur le droplet (07/09/2026, CVE-2025-55182)
+
+**Ce qui s'est passé** (preuves : journal systemd, `auth.log`, état disque — copie des pièces dans
+`/root/incident-2026-09-10/` sur le VPS) :
+
+- **07/09 13:13** — déploiement de l'app en **Next 15.4.6** (vulnérable) servir `agentrecruteur.fr`, **en root**.
+- **07/09 19:42–19:43** — RCE non authentifiée (protocole React flight) : `useradd pakchoi` (UID 0, mot de passe fixe, `NOPASSWD:ALL`), `apt install docker.io containerd`, 9 conteneurs `amco_*`, écriture du crontab root, unité déguisée `sys-health.service`, reverse shell `/tmp/.n` → `185.177.72.3:20053`. Les commandes s'exécutent dans le cgroup `/system.slice/agentrecruteur.service` en `_UID=0`.
+- La charge utile n'a **jamais tourné** (images privées → `pull access denied`) mais root était acquis, avec persistance triple (cron + `.bashrc` + unité systemd).
+- Entrée **par l'app web**, pas par SSH (`auth.log` : 47 connexions réussies ce jour-là = 27× `root` depuis l'IP de Laurent + 11× `digest` depuis les runners GitLab CI, toutes légitimes ; aucune escalade `sudo` vers les commandes hostiles).
+- Les 3 autres sites tournent sous `digest` → non atteints. ActionArgent n'était pas encore déployé.
+
+**Confinement (fait et vérifié le 2026-09-10)** :
+
+- [x] crontab root nettoyé (12 → 1 ligne légitime), `sys-health.{service,timer}` supprimés
+- [x] compte `pakchoi` + `/etc/sudoers.d/99-pakchoi` + `/home/pakchoi` supprimés
+- [x] `/tmp/.n` supprimé ; `docker`/`containerd` **arrêtés et masqués** (outillage de l'attaquant, aucun usage légitime)
+- [x] **reboot du droplet** : rien n'est revenu (compte absent, 0 unité `sys-health`, aucune connexion C2) ; caddy + 5 services et les 4 sites remontés seuls (200)
+
+**Reste à faire (par ordre de priorité)** :
+
+- [ ] **Rotation des secrets exposés** (~3 jours de root) : clé OpenAI, credentials Atlas ; token Sentry + bot Telegram (`/root/.sentry-alert.env`) ; clés providers Hermes (`/root/.hermes/`)
+- [ ] `agentrecruteur.service` : passer du service **root** à un utilisateur dédié + durcissement systemd (`NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`, `RestrictSUIDSGID`)
+- [ ] Activer les **access logs Caddy** (aucun log HTTP conservé → vecteur non prouvé à 100 %)
+- [ ] En-têtes de sécurité + **CSP à nonce** (Next 16 permet de le faire dans `proxy.ts`) et **SRI** expérimental — à intégrer au durcissement app
+- [ ] sshd : `PermitRootLogin yes` + `PasswordAuthentication yes` → clés uniquement
+- [ ] Purger les paquets `docker.io`/`containerd` (aujourd'hui masqués, pas désinstallés)
+- [ ] Trancher : **rebuild complet du droplet** (recommandé après une compromission root) vs durcissement sur place
+- [ ] Signalements : IP C2 `185.177.72.3:20053` (FR, netname `FR-FBW-NETWORKS-20161110`, abuse `bucklog@tutamail.com`, tutanota = hébergeur tolérant) → DigitalOcean + hébergeur
+- [ ] Revérifier périodiquement : `getent passwd` inconnus, `crontab -l`, unités hors périmètre, connexions sortantes
+
+**Correctif appliqué** (branche `security/next-16`) : Next `15.4.6` → **`16.3.4`** (Turbopack par défaut, ESLint flat config native, `next lint` retiré → `eslint`), React/React-DOM `19.1.0` → `19.2.8`, `js-yaml` → `^4.3.2`, `@types/node` 20 → 24, purge des dépendances mortes `unpdf` (`canvas → node-pre-gyp → tar@6.2.1`) et `langchain`/`@langchain/*` avec l'orchestrateur orphelin (`langsmith`, `uuid`), correction du seul défaut de code remonté par le nouveau lint (`setState` synchrone dans un effet — `SparklesCore`). **Audit : 12 vulnérabilités → 0.** Vérifications : lint 0 erreur, typecheck tsgo vert, 29 tests, build Turbopack, smoke test sur serveur de production (accueil 200, `storage: mongodb` + 5 candidats, upload vide 400, 404).
