@@ -77,7 +77,7 @@ Règles de sécurité :
 - **Distant** : `main` uniquement (vérifié `git ls-remote --heads origin`, 2026-09-10). Les branches de travail
   (`docs/*`, `feat/*`, `refactor/mono-port-next`) sont supprimées au merge de leur PR (`--delete-branch`) ;
   si `git branch -r` en montre encore, ce sont des refs fantômes locales → `git fetch origin --prune`.
-- **En attente** : `feat/conversation-page` et `docs/braintrust-backlog` sont locales, **jamais poussées** (cf. `TODO.md` §2).
+- **En attente** : `feat/conversation-page` et `docs/braintrust-backlog` sont locales, **jamais poussées** (cf. `TODO.md` §3).
 
 Règles :
 - Ne **jamais** committer directement sur `main` : passer par une branche `feat/*` ou `docs/*` puis PR.

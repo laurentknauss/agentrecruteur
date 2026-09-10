@@ -26,7 +26,27 @@ curl -s https://agentrecruteur.fr/api/health
 ssh root@209.38.207.109 'systemctl status agentrecruteur.service --no-pager'
 ```
 
-## 1) 🔴 P1 — Atlas injoignable depuis le VPS → prod tourne en mémoire
+## 1) 🔴 P0 — `next` 15.4.6 en prod : RCE critique (CVSS 10.0)
+
+Constaté par le job CI `pnpm audit (high)` (et confirmé localement, 2026-09-10) :
+
+| Advisory | Sévérité | Portée | Corrigé en |
+|---|---|---|---|
+| RCE protocole React flight (CVE-2025-55182, GHSA-9qr9-h5gf-34mp) | **critical 10.0** | `next >=15.4.0-canary.0 <15.4.8` | 15.4.8 / 15.4.10 |
+| 2 advisories `next` supplémentaires | critical | `next >=13.4.0 <15.5.24` | **15.5.24** |
+| `tar <=7.5.18` | critical | transitif | 7.5.19 |
+
+- Version installée : `next 15.4.6`, `react`/`react-dom` **19.1.0** (React affecté : 19.0.0–19.2.0, corrigé en 19.2.1).
+- Version **déployée en prod** : `next 15.4.6` (vérifié sur le VPS) → site public exposé, exploitation **sans authentification** (`AV:N/AC:L/PR:N/UI:N`, CWE-502 désérialisation).
+- Le verrou démo (`DEMO_LOCK`) ne protège **pas** de cette faille : elle est dans le protocole RSC, pas dans les endpoints LLM.
+
+**Actions** :
+- [ ] Monter `next` à **≥15.5.24** (dernière 15.5.x : 15.5.25) et `react`/`react-dom` à **19.2.1** (lire les notes de version 15.4 → 15.5 avant, cf. règle « pas de dépréciation laissée »).
+- [ ] Traiter `tar <=7.5.18` (transitif, probablement via `unpdf`→`canvas`) — `override` pnpm ou retrait de la dépendance.
+- [ ] Repasser `pnpm audit --audit-level=high` à zéro critical, typecheck + build + smoke test local, puis redéployer.
+- Note : le job CI `pnpm audit (high)` est en `continue-on-error` (informatif) → il **ne bloque pas** les merges, donc un CVE critique peut passer en prod sans gate. À reprendre (le rendre bloquant sur `critical`).
+
+## 2) 🔴 P1 — Atlas injoignable depuis le VPS → prod tourne en mémoire
 
 **Symptôme** : `GET /api/health` → `{"storage":"memory","candidatesCount":0}` alors que
 `MONGODB_ATLAS_URI` est bien renseignée dans `/srv/agentrecruteur/.env.local`.
@@ -48,7 +68,7 @@ Conséquence : **aucune persistance** — les candidatures disparaissent à chaq
 
 Notes : la clé API Atlas n'est pas sur la machine et `mongosh` n'est pas installé → l'ajout d'IP se fait dans le dashboard Atlas (côté Laurent).
 
-## 2) 🔴 P1 — Prod en retard sur le code + branche non poussée
+## 3) 🔴 P1 — Prod en retard sur le code + branche non poussée
 
 - [ ] **`feat/conversation-page` (commit `05378a7`, 2026-09-09) — jamais poussée** (pas d'upstream, aucune PR).
   412 lignes : page `/conversation/[id]`, `RecruiterConversation.tsx`, `navbar.tsx`, `llm.ts`,
@@ -68,15 +88,15 @@ gh pr merge --squash --delete-branch
 # déploiement : cf. deploy/README.md (build local → rsync → systemctl restart agentrecruteur.service)
 ```
 
-## 3) 🟡 Provisions & sortie du mode démo
+## 4) 🟡 Provisions & sortie du mode démo
 
 - [x] `OPENAI_API_KEY` présente dans `/srv/agentrecruteur/.env.local`
 - [x] `DEMO_LOCK=1` + `NEXT_PUBLIC_DEMO_LOCK=1` actifs (403 en prod, vérifié)
-- [ ] Atlas utilisable **depuis le VPS** (bloquant, cf. §1) — sans lui, sortir du mode démo enverrait
+- [ ] Atlas utilisable **depuis le VPS** (bloquant, cf. §2) — sans lui, sortir du mode démo enverrait
   les candidatures dans un stockage volatil.
 - [ ] Décider de la sortie de démo (auth / invitation) — non planifié, cf. « Prochaines évolutions » de `AGENTS.md`.
 
-## 4) 🟡 Branches
+## 5) 🟡 Branches
 
 - [x] Distant = `main` seulement (`git ls-remote --heads origin`) — les 9 branches de travail
   (`docs/agents-github-workflow`, `docs/branches-roles`, `docs/okf-bilan-session`, `feat/components-json`,
@@ -84,10 +104,10 @@ gh pr merge --squash --delete-branch
   `refactor/mono-port-next`) ont été supprimées au merge de leur PR ; il restait des refs fantômes
   locales, purgées par `git fetch --prune`.
 - [ ] Locales à traiter :
-  - `feat/conversation-page`, `docs/braintrust-backlog` → pousser puis merger (§2), sinon perdues.
+  - `feat/conversation-page`, `docs/braintrust-backlog` → pousser puis merger (§3), sinon perdues.
   - `feat/ui-header-footer-fr`, `non-locked-features` → **à conserver** (rôles dev documentés dans `AGENTS.md`).
 
-## 5) 🟡 Backlog — Observabilité / évals LLM (Braintrust)
+## 6) 🟡 Backlog — Observabilité / évals LLM (Braintrust)
 
 Pas posé dans le code, inscription faite le 2026-09-08. Aucun engagement de code pour l'instant.
 
@@ -97,12 +117,12 @@ Pas posé dans le code, inscription faite le 2026-09-08. Aucun engagement de cod
   - CLI : `~/.local/bin/braintrust-setup` ; config locale `.braintrust.json` (gitignorée, contient la clé API Braintrust)
   - Provider OpenAI : clé depuis l'env `$OPENAI_API_KEY` à recoller dans « configure provider » de Braintrust — **jamais** écrite dans un fichier du repo
 
-## 6) 🟡 Dettes non bloquantes
+## 7) 🟡 Dettes non bloquantes
 
 - [ ] Audit outil : vulns transitives (Next→postcss, unpdf→canvas→tar) ; montées mineures (Next 16, LangChain 0.5) — évaluées plus tard.
 - [ ] (Le cas échéant) base `backend/` : `backend/.env` existe encore alors que le serveur Express a été supprimé (§ _Architecture_ de `AGENTS.md`) — vérifier qu'il n'est plus référencé et le retirer du disque local.
 
-## 7) Rappels ops
+## 8) Rappels ops
 
 - Ne **jamais** committer sur `main` : branche + PR + checks verts, puis `gh pr merge --squash --delete-branch`.
 - Déploiement : build **local** → rsync → `systemctl restart agentrecruteur.service` (pas de déploiement CI).

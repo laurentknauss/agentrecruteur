@@ -100,7 +100,7 @@ ci-dessus évite de l'écraser.
 ## 8) Vérifications post-déploiement
 
 ```bash
-curl -s https://agentrecruteur.fr/api/health      # storage: mongodb attendu (cf. TODO.md §1)
+curl -s https://agentrecruteur.fr/api/health      # storage: mongodb attendu (cf. TODO.md §2)
 curl -I https://agentrecruteur.fr | grep -i ^server   # server: Caddy
 curl -s -o /dev/null -w '%{http_code}\n' -X POST https://agentrecruteur.fr/api/upload-cv  # 403 en démo
 ssh root@209.38.207.109 'systemctl is-active agentrecruteur.service'

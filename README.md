@@ -102,7 +102,7 @@ pnpm dev   # http://localhost:3000
 - **Activer l'analyse IA réelle** : renseigner `OPENAI_API_KEY` dans `frontend/.env.local` puis retirer `DEMO_LOCK=1`.
 
 > Stockage : le serveur tente MongoDB Atlas puis bascule en mémoire — `GET /api/health` → `storage: mongodb | memory`.
-> ⚠️ En production l'état réel est visible via `curl -s https://agentrecruteur.fr/api/health` (cf. `TODO.md` §1).
+> ⚠️ En production l'état réel est visible via `curl -s https://agentrecruteur.fr/api/health` (cf. `TODO.md` §2).
 
 ### Données de démo
 
@@ -155,7 +155,7 @@ agentrecruteur.fr, www.agentrecruteur.fr {
 
 ## Évolutions / chantiers ouverts
 
-- **Persistance active en prod** : ajouter l'IP du droplet dans l'IP Access List Atlas — bloquant, cf. `TODO.md` §1.
+- **Persistance active en prod** : ajouter l'IP du droplet dans l'IP Access List Atlas — bloquant, cf. `TODO.md` §2.
 - Ajouter de vraies sessions multi-recruteurs (auth sur invitation) quand le produit se paie.
 - Analytics : scoring comparatif, recherche full-text sur les CV (index textes déjà déclarés).
 - Montées mineures de versions (Next 16, LangChain 0.5) différées volontairement (breaking changes sans gain démo).
