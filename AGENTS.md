@@ -6,7 +6,7 @@
 ## Vue d'ensemble
 
 - **Produit** : « CV Inspector » — assistant IA pour l'élagage et l'analyse préliminaire des candidatures (recruteurs français).
-- **Stack** : app **unique Next.js 15** (React 19 + Tailwind 4) — l'UI **et** l'API (`/api/*`) vivent dans le même serveur (App Router), un seul process/port (3000).
+- **Stack** : app **unique Next.js 15** (React 19 + Tailwind 4) — l'UI **et** l'API (`/api/*`) vivent dans le même serveur (App Router) ; un seul process : port 3000 en dev, **3004 en production** (`agentrecruteur.service` sur le VPS).
 - **LLM** : GPT-5.5 via l'API OpenAI officielle (Responses API, client `openai`).
 - **Persistance** : MongoDB Atlas (mongoose 8) avec repli automatique en mémoire si Atlas est injoignable.
 - **Langue** : interface et analyse en français ; conformité RGPD ; CV au format français.
@@ -28,7 +28,7 @@ Depuis la racine du monorepo (`pnpm` obligatoire) :
 ```
 PDF (upload) → extraction pdf2json → StructuringWorker (PDF→JSON)
   → SkillsAnalysisWorker → ExperienceWorker → ScreeningWorker → MatchingWorker (option)
-  → CandidateRepository (Mongo Atlas | mémoire) → API Express → Frontend Next.js
+  → CandidateRepository (Mongo Atlas | mémoire) → route handlers App Router → UI Next.js
 ```
 
 - **Domaine (ex-backend)** : `frontend/src/server/` (orchestrateur `orchestrator/recruitingOrchestrator.js`, workers `workers/`, pdf, llm, store, database).
@@ -73,8 +73,11 @@ Règles de sécurité :
 | `main` | **Production** — protégée (PR + checks verts, pas de force-push). Toujours déployable (agentrecruteur.fr). |
 | `feat/ui-header-footer-fr` | **Itération UI dev** — contient les annotations dev (noms rouges `data-devbox`) pour régler visuellement le design. Contenu à porter sur `main` via branches propres (annotations retirées). |
 | `non-locked-features` | **Dev local déverrouillé** — verrous démo coupés dans le code (`DEMO_LOCKED=false`, `isDemoLocked=false`) pour tester upload/Q&A réels (OpenAI/Mongo). **Ne pas pousser en production.** |
-| `docs/agents-github-workflow` | Docs (ancienne, à supprimer après merge). |
-| `origin/docs/okf-bilan-session`, `origin/feat/logo-sergent-loupe`, `origin/feat/prod-clean-ui`, `origin/refactor/mono-port-next` | Branches distantes **déjà mergées** — obsolètes, nettoyables. |
+
+- **Distant** : `main` uniquement (vérifié `git ls-remote --heads origin`, 2026-09-10). Les branches de travail
+  (`docs/*`, `feat/*`, `refactor/mono-port-next`) sont supprimées au merge de leur PR (`--delete-branch`) ;
+  si `git branch -r` en montre encore, ce sont des refs fantômes locales → `git fetch origin --prune`.
+- **En attente** : `feat/conversation-page` et `docs/braintrust-backlog` sont locales, **jamais poussées** (cf. `TODO.md` §2).
 
 Règles :
 - Ne **jamais** committer directement sur `main` : passer par une branche `feat/*` ou `docs/*` puis PR.
@@ -89,13 +92,27 @@ Règles :
 - **Repo GitHub public créé** (`agentrecruteur`) — historique secret-free vérifié ; README réécrit pour lectorat CTO.
 - **CI + Husky + protection de branche `main`** (PR + checks verts) — voir section GitHub ci-dessus.
 - **Mode démo vitrine** : `DEMO_LOCK=1` + header « Sign up / Login » (modal contact, aucune auth).
-- **DNS** : zone `agentrecruteur.fr` créée chez DigitalOcean (via doctl) — A `@` + A `www` → 209.38.207.109 ; NS basculés chez GoDaddy vers ns1/ns2/ns3.digitalocean.com (propagation en cours).
+- **DNS** : zone `agentrecruteur.fr` chez DigitalOcean (via doctl) — A `@` + A `www` → 209.38.207.109 ; NS basculés chez GoDaddy vers ns1/ns2/ns3.digitalocean.com (**convergence terminée, vérifié 2026-09-10**).
 - Docs déploiement VPS : `deploy/README.md`, `deploy/Caddyfile.agentrecruteur.example`, checklist `TODO.md`.
 
-### ⚠️ À faire
-- **Déploiement VPS** : Caddy + systemd + rsync (build local) — cf. `deploy/README.md` + `TODO.md` (convergence NS incluse).
-- **Provisions** : cluster Atlas M0 + `OPENAI_API_KEY` pour sortir du mode démo (retirer `DEMO_LOCK`).
+### ⚠️ À faire (état vérifié 2026-09-10 — détail et commandes dans `TODO.md`)
+
+- **🔴 Persistance HS en prod** : `/api/health` → `storage: memory`. Cause isolée : l'IP du droplet
+  (`209.38.207.109`) n'est pas dans l'IP Access List Atlas (même URI OK depuis le poste local ; depuis le VPS →
+  `SSL alert 80`). Fix : ajouter l'IP côté Atlas, puis restart du service. `storage-init.ts` bascule en mémoire
+  silencieusement (`console.warn`) → la panne ne casse pas la prod mais aucune candidature n'est conservée.
+- **🔴 Code non déployé** : `feat/conversation-page` (+ `docs/braintrust-backlog`) locales, jamais poussées ;
+  build prod du 2026-09-07 → `https://agentrecruteur.fr/conversation/<id>` = 404.
+- **🟡 Backlog** : évals LLM Braintrust (aucun code engagé).
 - Audit outil non bloquant : vulns transitives (Next→postcss, unpdf→canvas→tar) ; montées mineures (Next 16, LangChain 0.5) évaluées plus tard.
+
+### ✅ État vérifié (2026-09-10)
+
+- `agentrecruteur.fr` + `www` : DNS DO, TLS Caddy, `HTTP/2 200` ; unité `agentrecruteur.service` (port **3004**, racine `/srv/agentrecruteur`, copie rsync du contenu de `frontend/`).
+- Verrou démo opérationnel en prod : `POST /api/upload-cv` et `POST /api/candidate/:id/ask` → **403**.
+- Distant git = `main` seulement.
+
+## Bilan de session (2026-09-07)
 
 ## Prochaines évolutions (non prioritaires pour la démo)
 

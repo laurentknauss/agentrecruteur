@@ -23,3 +23,6 @@ coverage/
 .claude/
 .playwright-mcp/
 .vscode/
+
+# Braintrust (config locale wizard — contient une clé API, jamais committer)
+.braintrust.json

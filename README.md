@@ -38,16 +38,16 @@ permet un Q&A sur le candidat.
    Bénéfices : debuggabilité (chaque worker est isolé), scalabilité indépendante, observabilité du pipeline.
 
 3. **Storage avec dégradation gracieuse.**
-   Au démarrage, le backend tente MongoDB Atlas ; si injoignable, il bascule en mémoire
-   (`GET /health` expose le backend actif). La démo ne dépend d'aucun service payant.
+   Au démarrage, le serveur tente MongoDB Atlas ; si injoignable, il bascule en mémoire
+   (`GET /api/health` expose le backend actif). La démo ne dépend d'aucun service payant.
 
 4. **LLM derrière une variable de modèle.**
-   `backend/src/clients/openaiClient.js` centralise l'appel OpenAI (Responses API, sortie JSON structurée).
+   `frontend/src/server/clients/openaiClient.js` centralise l'appel OpenAI (Responses API, sortie JSON structurée).
    `GPT_MODEL` permet de changer de modèle sans toucher au code.
 
 5. **Frontend en cours de qualification.**
-   Le frontend Next.js est un client de démonstration de l'API (upload + visualisation + Q&A) :
-   toute la logique métier vit côté backend, l'UI est remplaçable.
+   L'UI Next.js est un client de démonstration de l'API (upload + visualisation + Q&A) :
+   toute la logique métier vit côté serveur (`frontend/src/server/`), l'UI est remplaçable.
 
 ---
 
@@ -56,14 +56,15 @@ permet un Q&A sur le candidat.
 ```
 PDF (upload) → extraction pdf2json → StructuringWorker (PDF → JSON)
   → SkillsAnalysisWorker → ExperienceWorker → ScreeningWorker → MatchingWorker (option)
-  → CandidateRepository (Mongo Atlas | mémoire) → API Express → Frontend Next.js
+  → CandidateRepository (Mongo Atlas | mémoire) → route handlers App Router (même serveur Next.js)
 ```
 
-- **Orchestrateur** : `backend/src/orchestrator/recruitingOrchestrator.js` (LangChain `RunnableSequence`).
-- **Workers** : `backend/src/workers/` (structuring, comprehensiveResumeAnalyzer).
-- **Stockage** : interface `CandidateRepository` (`backend/src/store.ts`) ;
-  implémentations `database/mongoCandidateStore.ts` (Atlas) et mémoire.
-- **Répertoire backend** : `backend/`, **frontend** : `frontend/` (imports `@/components/*`).
+- **Orchestrateur** : `frontend/src/server/orchestrator/recruitingOrchestrator.js` (LangChain `RunnableSequence`).
+- **Workers** : `frontend/src/server/workers/` (structuring, comprehensiveResumeAnalyzer).
+- **Stockage** : interface `CandidateRepository` (`frontend/src/server/store.ts`) ;
+  implémentations `frontend/src/server/database/mongoCandidateStore.ts` (Atlas) et mémoire.
+- **Répertoire** : `frontend/` uniquement (app Next.js mono-port, UI + API ; imports `@/components/*`).
+  L'ancien répertoire `backend/` (Express) a été absorbé dans `frontend/src/server/`.
 
 ---
 
@@ -74,8 +75,8 @@ PDF (upload) → extraction pdf2json → StructuringWorker (PDF → JSON)
   - hooks Husky `pre-commit`/`pre-push` (voir `.husky/`) ;
   - job CI `security` (scan secrets bloquant) ;
   - `.gitignore` strict (`*.env*` sauf `*.env.example`).
-- **Environnement** : seuls des fichiers `.env.example` sont commités (cf. `backend/.env.example`).
-  Le `.env` vit sur le serveur ou localement, jamais en CI.
+- **Environnement** : seuls des fichiers `.env.example` sont commités (cf. `frontend/.env.example`).
+  Le `.env.local` vit sur le serveur ou localement, jamais en CI.
 - **Démo publique protégée** : `DEMO_LOCK=1` renvoie 403 sur `POST /api/upload-cv` et
   `POST /api/candidate/:id/ask` → aucune dépense OpenAI par des visiteurs inconnus.
   L'accès réel se fait sur invitation (contact).
@@ -98,16 +99,15 @@ pnpm dev   # http://localhost:3000
 ```
 
 - Ouvrir `http://localhost:3000`. En mode démo, l'upload et le Q&A renvoient un 403 avec message de contact.
-- **Activer l'analyse IA réelle** : renseigner `OPENAI_API_KEY` dans `backend/.env` puis retirer `DEMO_LOCK=1`.
+- **Activer l'analyse IA réelle** : renseigner `OPENAI_API_KEY` dans `frontend/.env.local` puis retirer `DEMO_LOCK=1`.
 
-> Stockage : le backend tente MongoDB Atlas puis bascule en mémoire — `GET /health` → `storage: mongodb | memory`.
+> Stockage : le serveur tente MongoDB Atlas puis bascule en mémoire — `GET /api/health` → `storage: mongodb | memory`.
+> ⚠️ En production l'état réel est visible via `curl -s https://agentrecruteur.fr/api/health` (cf. `TODO.md` §1).
 
 ### Données de démo
 
-```bash
-# Avec Atlas connecté : insère des candidats fictifs (Sophie Martin, etc.)
-cd backend && pnpm exec tsx scripts/seed-demo.ts
-```
+Il n'y a **pas** de script de seed dans le repo : le jeu de démo (`candidatesCount: 0` en mémoire)
+se remplit en uploadant un CV réel depuis l'UI, une fois `DEMO_LOCK` retiré.
 
 CV de test réel : `resumes/Sophie_Martin_Marketing.pdf` (format français : âge, situation familiale…).
 
@@ -122,7 +122,7 @@ CV de test réel : `resumes/Sophie_Martin_Marketing.pdf` (format français : âg
 | GET | `/api/candidates` | Liste synthétique des candidats | ✅ |
 | GET | `/api/candidate/:id` | Détail complet | ✅ |
 | DELETE | `/api/candidate/:id` | Suppression | ✅ |
-| GET | `/health` | Statut + backend de stockage actif | ✅ |
+| GET | `/api/health` | Statut + backend de stockage actif | ✅ |
 
 ---
 
@@ -147,10 +147,7 @@ Le `.env` est copié une fois sur le VPS, jamais en CI.
 
 ```
 agentrecruteur.fr, www.agentrecruteur.fr {
-  encode gzip
-  @api path /api/*
-  handle @api { reverse_proxy 127.0.0.1:3001 }   # Express
-  handle     { reverse_proxy 127.0.0.1:3000 }   # Next.js
+  reverse_proxy 127.0.0.1:3004   # app Next.js mono-port (UI + API)
 }
 ```
 
@@ -158,7 +155,7 @@ agentrecruteur.fr, www.agentrecruteur.fr {
 
 ## Évolutions / chantiers ouverts
 
-- Provisionner un cluster MongoDB Atlas M0 et renseigner `MONGODB_ATLAS_URI` (persistance active).
+- **Persistance active en prod** : ajouter l'IP du droplet dans l'IP Access List Atlas — bloquant, cf. `TODO.md` §1.
 - Ajouter de vraies sessions multi-recruteurs (auth sur invitation) quand le produit se paie.
 - Analytics : scoring comparatif, recherche full-text sur les CV (index textes déjà déclarés).
 - Montées mineures de versions (Next 16, LangChain 0.5) différées volontairement (breaking changes sans gain démo).
