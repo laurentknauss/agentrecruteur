@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { motion, Variants } from "motion/react";
 import { cn } from "@/lib/utils";
 
@@ -32,17 +32,18 @@ const SparklesCore = (props: {
 
   const [sparkles, setSparkles] = useState<SparkleProps[]>([]);
 
-  const generateSparkle = (): SparkleProps => {
-    return {
-      id: Math.random().toString(36).substr(2, 9),
+  const generateSparkle = useCallback(
+    (): SparkleProps => ({
+      id: Math.random().toString(36).slice(2, 11),
       x: `${Math.random() * 100}%`,
       y: `${Math.random() * 100}%`,
       color: particleColor,
       delay: Math.random() * 2,
       scale: Math.random() * (maxSize - minSize) + minSize,
       lifespan: Math.random() * 10 + 10,
-    };
-  };
+    }),
+    [particleColor, maxSize, minSize]
+  );
 
   const sparkleVariants: Variants = {
     initial: {
@@ -61,9 +62,13 @@ const SparklesCore = (props: {
   };
 
   useEffect(() => {
-    const sparkleCount = Math.floor(particleDensity / 100);
-    const newSparkles = Array.from({ length: sparkleCount }, generateSparkle);
-    setSparkles(newSparkles);
+    const sparkleCount = Math.max(0, Math.floor(particleDensity / 100));
+    // Remplissage initial au premier frame (et non synchronement dans l'effet) : le premier rendu
+    // client reste identique au HTML prérendu — aucun aléatoire pendant le rendu, donc aucun
+    // écart d'hydratation — tout en évitant des rendus en cascade.
+    const raf = requestAnimationFrame(() => {
+      setSparkles(Array.from({ length: sparkleCount }, generateSparkle));
+    });
 
     const interval = setInterval(() => {
       setSparkles((current) =>
@@ -71,8 +76,11 @@ const SparklesCore = (props: {
       );
     }, 5000);
 
-    return () => clearInterval(interval);
-  }, [particleDensity]);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearInterval(interval);
+    };
+  }, [particleDensity, generateSparkle]);
 
   return (
     <div
