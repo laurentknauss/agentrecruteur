@@ -2,12 +2,17 @@
 import { extractPDFText } from './utils/agentUtils.js';
 import { structureResumeText } from './workers/structuringWorker.js';
 import { StructuredResume } from './types.ts';
+import { PdfError, PDF_ERROR_CODES, toAnalysisError, toPdfError } from './errors.ts';
+import { MAX_UPLOAD_BYTES } from './limits.js';
 import fs from 'fs/promises';
 import path from 'path';
 
 /**
  * Process uploaded PDF buffer and extract structured resume data
  * Uses existing extractPDFText + structureResumeText from codebase
+ *
+ * Erreurs : `PdfError` pour tout incident de lecture PDF (422),
+ * `AnalysisServiceError` pour une indisponibilité du LLM (502).
  */
 export async function processPDFBuffer(
   buffer: Buffer, 
@@ -27,15 +32,28 @@ export async function processPDFBuffer(
   try {
     // Step 1: Extract raw text using existing agentUtils
     console.log(`📝 Extracting text from PDF...`);
-    const sourceText = await extractPDFText(tempPath);
+    let sourceText: string;
+    try {
+      sourceText = await extractPDFText(tempPath);
+    } catch (extractionError) {
+      throw toPdfError(extractionError);
+    }
     
     if (!sourceText || sourceText.trim().length === 0) {
-      throw new Error('No text could be extracted from PDF');
+      throw new PdfError(
+        PDF_ERROR_CODES.NO_TEXT,
+        "Aucune couche texte détectée dans ce PDF (document scanné). L'OCR n'est pas pris en charge : fournissez un PDF texte.",
+      );
     }
     
     // Step 2: Structure using existing StructuringWorker (GPT-5.5)
     console.log(`🏗️ Structuring resume with GPT-5...`);
-    const structuredProfile = await structureResumeText(sourceText) as StructuredResume;
+    let structuredProfile: StructuredResume;
+    try {
+      structuredProfile = await structureResumeText(sourceText) as StructuredResume;
+    } catch (structuringError) {
+      throw toAnalysisError(structuringError);
+    }
     
     console.log(`✅ PDF processed successfully for ${candidateId}`);
     
@@ -73,7 +91,7 @@ export function validatePDFBuffer(buffer: Buffer): { valid: boolean; error?: str
     return { valid: false, error: 'PDF file too small' };
   }
   
-  if (buffer.length > 10 * 1024 * 1024) {
+  if (buffer.length > MAX_UPLOAD_BYTES) {
     return { valid: false, error: 'PDF file too large (max 10MB)' };
   }
   

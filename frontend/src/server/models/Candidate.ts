@@ -12,6 +12,10 @@ export interface CandidateDocument extends Document {
     timestamp: string;
   }>;
   sourceText: string;
+  /** Propriétaire du candidat (null = ingestion anonyme). Sera alimenté par Clerk. */
+  ownerId: string | null;
+  /** Empreinte SHA-256 du PDF déposé — clé de déduplication. */
+  fingerprint?: string;
   metadata: {
     filename?: string;
     uploadedAt: string;
@@ -78,6 +82,19 @@ const candidateSchema = new Schema<CandidateDocument>({
   sourceText: {
     type: String,
     required: true
+  },
+
+  // Propriétaire du candidat — null tant que l'ingestion est anonyme (Clerk ensuite)
+  ownerId: {
+    type: String,
+    default: null,
+    index: true
+  },
+
+  // Empreinte SHA-256 du fichier déposé — déduplication des uploads identiques
+  fingerprint: {
+    type: String,
+    index: true
   },
   
   // Métadonnées

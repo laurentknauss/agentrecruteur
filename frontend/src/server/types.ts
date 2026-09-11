@@ -48,6 +48,10 @@ export interface CandidateProfile {
   analysis: ResumeAnalysis;
   uploadedAt: string;
   filename?: string;
+  /** Propriétaire du candidat (null = ingestion anonyme). Indexé, filtrable. */
+  ownerId?: string | null;
+  /** Empreinte SHA-256 du fichier déposé — clé de déduplication. */
+  fingerprint?: string;
 }
 
 export interface QARequest {
@@ -72,6 +76,10 @@ export interface UploadResponse {
     experience_level: string;
     overall_score: number;
   };
+  /** Backend de persistance effectivement utilisé (`mongodb` ou `memory`). */
+  storage: "mongodb" | "memory";
+  /** `true` quand le CV avait déjà été analysé : aucun appel LLM n'a été refait. */
+  deduplicated: boolean;
 }
 
 export interface ApiError {

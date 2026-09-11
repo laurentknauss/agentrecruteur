@@ -118,4 +118,43 @@ describe("CandidateStore (mémoire)", () => {
     expect(found?.analysis.overall_score).toBe(99)
     await expect(candidateStore.count()).resolves.toBe(1)
   })
+
+  it("filtre lectures et suppressions par propriétaire quand un contexte est fourni", async () => {
+    const alice = { ...sampleCandidate("p1"), ownerId: "alice" }
+    const bob = { ...sampleCandidate("p2"), ownerId: "bob" }
+    await candidateStore.set("p1", alice)
+    await candidateStore.set("p2", bob)
+
+    await expect(candidateStore.get("p1", "bob")).resolves.toBeUndefined()
+    await expect(candidateStore.get("p1", "alice")).resolves.toMatchObject({ id: "p1" })
+    await expect(candidateStore.has("p2", "alice")).resolves.toBe(false)
+    await expect(candidateStore.count("alice")).resolves.toBe(1)
+    await expect(candidateStore.listSummary("bob")).resolves.toHaveLength(1)
+    await expect(candidateStore.delete("p1", "bob")).resolves.toBe(false)
+    await expect(candidateStore.count()).resolves.toBe(2)
+  })
+
+  it("sans contexte propriétaire, expose tous les candidats (portée administrateur)", async () => {
+    await candidateStore.set("p1", { ...sampleCandidate("p1"), ownerId: "alice" })
+    await candidateStore.set("p2", { ...sampleCandidate("p2"), ownerId: "bob" })
+    await expect(candidateStore.count()).resolves.toBe(2)
+    await expect(candidateStore.list()).resolves.toHaveLength(2)
+  })
+
+  it("retrouve un candidat par empreinte, filtrée par propriétaire", async () => {
+    await candidateStore.set("f1", {
+      ...sampleCandidate("f1"),
+      fingerprint: "empreinte-abc",
+      ownerId: "alice",
+    })
+
+    await expect(candidateStore.findByFingerprint("empreinte-abc")).resolves.toMatchObject({
+      id: "f1",
+    })
+    await expect(candidateStore.findByFingerprint("empreinte-abc", "alice")).resolves.toMatchObject({
+      id: "f1",
+    })
+    await expect(candidateStore.findByFingerprint("empreinte-abc", "bob")).resolves.toBeUndefined()
+    await expect(candidateStore.findByFingerprint("inconnue")).resolves.toBeUndefined()
+  })
 })

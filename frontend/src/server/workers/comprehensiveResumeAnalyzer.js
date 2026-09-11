@@ -3,6 +3,7 @@
 
 import createOpenAIClient, { runGPT5Model } from '../clients/openaiClient.js';
 import { extractPDFText } from '../utils/agentUtils.js';
+import { MAX_RESUME_TEXT_CHARS } from '../limits.js';
 
 /**
  * Comprehensive Resume Analysis Schema
@@ -37,6 +38,13 @@ export async function analyzeResume(pdfPath, jobDescription = null) {
     
     if (!resumeText || resumeText.trim().length === 0) {
       throw new Error("No text could be extracted from the PDF");
+    }
+
+    // Borne le prompt : le texte intégral ne doit jamais partir vers le LLM.
+    if (resumeText.length > MAX_RESUME_TEXT_CHARS) {
+      throw new Error(
+        `Resume text too long: ${resumeText.length} characters (max ${MAX_RESUME_TEXT_CHARS})`
+      );
     }
     
     console.log(`✅ Extracted ${resumeText.length} characters from PDF`);

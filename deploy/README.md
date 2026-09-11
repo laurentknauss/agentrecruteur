@@ -108,24 +108,32 @@ ssh root@209.38.207.109 'systemctl restart agentrecruteur.service'
 - Le `.env.local` du serveur (`/srv/agentrecruteur/.env.local`) n'est **jamais** touché par ces
   rsync (hors des chemins synchronisés) ; il est lu par systemd via `EnvironmentFile`.
 
-## 6) Mode démo (protection crédits OpenAI)
+## 6) Protection des crédits et des données (post-verrou démo)
 
-- `DEMO_LOCK=1` + `NEXT_PUBLIC_DEMO_LOCK=1` dans `/srv/agentrecruteur/.env.local`
-  → `POST /api/upload-cv` et `POST /api/candidate/:id/ask` renvoient **403** (aucune dépense OpenAI).
-- UI : header « Sign up / Login » → modal « Contactez Laurent Knauss… » (aucune auth réelle).
+- Plus aucun verrou démo : `POST /api/upload-cv` et `POST /api/candidate/:id/ask` sont actifs en
+  production. Les coûts sont contenus autrement : bornes d'entrée (10 Mo, 20 pages, 60 000
+  caractères), **rate-limit 5 dépôts/h/IP**, et **déduplication sha256** (un CV déjà analysé n'est
+  jamais repayé).
+- Routes de données (`/api/candidates`, `/api/candidate/:id`, `/api/candidate/:id/ask`) :
+  `Authorization: Bearer ${ADMIN_TOKEN}` obligatoire. `ADMIN_TOKEN` **absent** en production →
+  **503** (fail-closed). `ADMIN_OWNER_ID` restreint les lectures/suppressions au propriétaire.
+- L'accès à l'upload depuis l'UI reste public (dépôt de CV par un candidat) : ne pas ouvrir
+  l'interface d'administration sans le jeton.
+- Le limiteur de corps du reverse proxy (`request_body { max_size 11MB }`) double le pré-contrôle
+  applicatif `Content-Length` (413).
 
 ## 7) Variables d'environnement
 
 `frontend/.env.example` liste les clés ; côté serveur `/srv/agentrecruteur/.env.local` contient :
-`OPENAI_API_KEY`, `GPT_MODEL`, `MONGODB_ATLAS_URI`, `MONGODB_DATABASE`, `DEMO_LOCK`, `NEXT_PUBLIC_DEMO_LOCK`.
+`OPENAI_API_KEY`, `GPT_MODEL`, `MONGODB_ATLAS_URI`, `MONGODB_DATABASE`, `ADMIN_TOKEN`, `ADMIN_OWNER_ID`.
 
 ## 8) Vérifications post-déploiement
 
 ```bash
 curl -s https://agentrecruteur.fr/api/health            # status OK (storage: mongodb attendu — cf. TODO.md §2)
 curl -s -o /dev/null -w '%{http_code}\n' https://agentrecruteur.fr/                     # 200
-curl -s -o /dev/null -w '%{http_code}\n' https://agentrecruteur.fr/api/candidates        # 200
-curl -s -o /dev/null -w '%{http_code}\n' -X POST https://agentrecruteur.fr/api/upload-cv # 403 en démo
+curl -s -o /dev/null -w '%{http_code}\n' https://agentrecruteur.fr/api/candidates        # 401 sans jeton (503 si ADMIN_TOKEN absent)
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://agentrecruteur.fr/api/upload-cv # 400 (requête sans fichier)
 ssh root@209.38.207.109 'systemctl is-active agentrecruteur.service; systemctl show -p NRestarts --value agentrecruteur.service'
 ```
 

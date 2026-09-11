@@ -1,26 +1,26 @@
-// Initialisation du stockage (une seule fois) — sélection Atlas ou mémoire.
+// Initialisation du stockage — sélection Atlas ou mémoire.
 import { candidateStore, type CandidateRepository } from "./store"
 import { mongoCandidateStore } from "./database/mongoCandidateStore"
 import MongoDBConnection from "./database/mongodb"
 
-let promise: Promise<CandidateRepository> | null = null
+// On ne mémorise que la tentative réussie : un repli mémoire n'est pas figé à vie,
+// une requête ultérieure retentera Atlas (le coût est porté par mongodb.ts, qui
+// conserve lui-même son état de connexion).
+let mongoRepository: Promise<CandidateRepository> | null = null
 
-export function getRepository(): Promise<CandidateRepository> {
-  promise ??= (async () => {
-    try {
-      await MongoDBConnection.getInstance().connect()
-      return mongoCandidateStore
-    } catch (error) {
-      console.warn(
-        "⚠️ MongoDB Atlas unavailable — falling back to in-memory storage:",
-        error instanceof Error ? error.message : error,
-      )
-      return candidateStore
-    }
-  })()
-  return promise
+export async function getRepository(): Promise<CandidateRepository> {
+  mongoRepository ??= MongoDBConnection.getInstance()
+    .connect()
+    .then(() => mongoCandidateStore)
+
+  try {
+    return await mongoRepository
+  } catch (error) {
+    console.warn(
+      "⚠️ MongoDB Atlas unavailable — falling back to in-memory storage:",
+      error instanceof Error ? error.message : error,
+    )
+    mongoRepository = null
+    return candidateStore
+  }
 }
-
-export const DEMO_LOCKED = process.env.DEMO_LOCK === "1"
-export const DEMO_ERROR =
-  "Accès restreint en démo. Contactez Laurent Knauss pour obtenir des identifiants."

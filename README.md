@@ -5,7 +5,7 @@ le système extrait, structure, analyse (compétences, expérience, screening), 
 permet un Q&A sur le candidat.
 
 > Ce dépôt est public dans un but de **revue technique** (CTO / direction technique / prospects).
-> Vous trouverez ici les décisions d'architecture, la posture sécurité et le mode démo protégé.
+> Vous trouverez ici les décisions d'architecture, la posture sécurité et les garde-fous d'exploitation.
 
 ---
 
@@ -17,11 +17,12 @@ permet un Q&A sur le candidat.
 | Backend | Route handlers Next.js (App Router) + **TypeScript** (TS 7 natif / tsgo) |
 | Frontend | Next.js 15 (App Router) + React 19 + Tailwind CSS 4 |
 | LLM | OpenAI **Responses API** (GPT-5.5), modèle piloté par `GPT_MODEL` |
-| Extraction PDF | `pdf2json` + `unpdf` (tolérance aux PDF malformés) |
-| Orchestration | **Orchestrator-Worker** (LangChain `RunnableSequence`) |
-| Persistance | MongoDB Atlas (mongoose 8) avec **fallback mémoire automatique** |
-| Démo publique | **`DEMO_LOCK=1`** : endpoints LLM coupés (403) → zéro coût OpenAI |
-| CI | GitHub Actions : scan secrets + typecheck + build (main protégée, PR + checks verts requis) |
+| Extraction PDF | `pdf2json` (bornes pages/caractères avant tout appel LLM) |
+| Orchestration | **Orchestrator-Worker** (pipeline extraction → structuration → analyse) |
+| Persistance | MongoDB Atlas (mongoose 8) avec **repli mémoire non persistant, exposé dans les réponses** |
+| Déduplication | Empreinte **SHA-256** du fichier : un CV déjà analysé n'est jamais repayé |
+| Accès données | `ADMIN_TOKEN` **fail-closed** (`Bearer`) sur `/api/candidates`, `/api/candidate/:id*` |
+| CI | GitHub Actions : scan secrets + typecheck + tests vitest + build (main protégée) |
 
 ---
 
@@ -77,11 +78,19 @@ PDF (upload) → extraction pdf2json → StructuringWorker (PDF → JSON)
   - `.gitignore` strict (`*.env*` sauf `*.env.example`).
 - **Environnement** : seuls des fichiers `.env.example` sont commités (cf. `frontend/.env.example`).
   Le `.env.local` vit sur le serveur ou localement, jamais en CI.
-- **Démo publique protégée** : `DEMO_LOCK=1` renvoie 403 sur `POST /api/upload-cv` et
-  `POST /api/candidate/:id/ask` → aucune dépense OpenAI par des visiteurs inconnus.
-  L'accès réel se fait sur invitation (contact).
-- **CI sur tout push/PR** : scan secrets (bloquant), typecheck tsgo backend+frontend, build Next.js.
-  `pnpm audit` est exécuté (informatif).
+- **Routes de données protégées** : `/api/candidates`, `/api/candidate/:id` (GET/DELETE) et
+  `/api/candidate/:id/ask` exigent `Authorization: Bearer ${ADMIN_TOKEN}`. Si `ADMIN_TOKEN`
+  n'est pas configuré **en production**, ces routes répondent **503** (fail-closed) : jamais
+  d'ouverture silencieuse. Le modèle porte un champ `ownerId` indexé, et les lectures/suppressions
+  sont filtrées par propriétaire quand un contexte est fourni — base qui sera reprise par **Clerk**.
+- **Upload borné** : pré-contrôle `Content-Length` (413 avant tamponnage), 10 Mo max, signature
+  `%PDF` vérifiée, 20 pages / 60 000 caractères max transmis au LLM, **5 dépôts par IP et par heure**.
+  Le proxy ajoute une limite de corps (`deploy/Caddyfile.agentrecruteur.example`).
+- **Erreurs explicites, sans fuite** : 422 (PDF chiffré / scanné / illisible), 502 (LLM ou base
+  indisponible), 500 générique porteur d'un **identifiant de corrélation** ; aucun message interne
+  n'est renvoyé au client.
+- **CI sur tout push/PR** : scan secrets (bloquant), typecheck tsgo, tests vitest, build Next.js.
+  `pnpm audit` et le scan Snyk sont bloquants pour les vulnérabilités high+.
 - **Branche `main` protégée** : PR obligatoire + checks verts requis + pas de force-push.
 
 ---
@@ -92,22 +101,24 @@ PDF (upload) → extraction pdf2json → StructuringWorker (PDF → JSON)
 pnpm install
 
 # 1. Configuration locale (jamais commitée)
-cp frontend/.env.example frontend/.env.local  # DEMO_LOCK=1 par défaut ; OPENAI_API_KEY vide en démo
+cp frontend/.env.example frontend/.env.local   # renseigner OPENAI_API_KEY (+ ADMIN_TOKEN)
 
-# 2. Serveur unique (UI + API) — vitrine sans coût LLM
+# 2. Serveur unique (UI + API)
 pnpm dev   # http://localhost:3000
 ```
 
-- Ouvrir `http://localhost:3000`. En mode démo, l'upload et le Q&A renvoient un 403 avec message de contact.
-- **Activer l'analyse IA réelle** : renseigner `OPENAI_API_KEY` dans `frontend/.env.local` puis retirer `DEMO_LOCK=1`.
+- Ouvrir `http://localhost:3000` et déposer un CV à tester.
+- Sans `OPENAI_API_KEY`, l'upload échoue proprement en **502** (service d'analyse indisponible).
 
-> Stockage : le serveur tente MongoDB Atlas puis bascule en mémoire — `GET /api/health` → `storage: mongodb | memory`.
+> Stockage : le serveur tente MongoDB Atlas puis bascule en mémoire (`GET /api/health` → `storage: mongodb | memory`).
+> Le repli mémoire **n'est pas figé** : chaque requête retente Atlas, et le mode utilisé est renvoyé
+> dans la réponse d'upload (`storage`). En mémoire, les candidats sont perdus au redémarrage.
 > ⚠️ En production l'état réel est visible via `curl -s https://agentrecruteur.fr/api/health` (cf. `TODO.md` §2).
 
 ### Données de démo
 
 Il n'y a **pas** de script de seed dans le repo : le jeu de démo (`candidatesCount: 0` en mémoire)
-se remplit en uploadant un CV réel depuis l'UI, une fois `DEMO_LOCK` retiré.
+se remplit en uploadant un CV réel depuis l'UI.
 
 CV de test réel : `resumes/Sophie_Martin_Marketing.pdf` (format français : âge, situation familiale…).
 
@@ -115,14 +126,18 @@ CV de test réel : `resumes/Sophie_Martin_Marketing.pdf` (format français : âg
 
 ## API
 
-| Méthode | Route | Rôle | Démo |
+| Méthode | Route | Rôle | Accès |
 |---|---|---|---|
-| POST | `/api/upload-cv` | Upload PDF (multipart `cv`) → analyse complète | 🔒 403 sous DEMO_LOCK |
-| POST | `/api/candidate/:id/ask` | Q&A sur un candidat (`{ question }`) | 🔒 403 sous DEMO_LOCK |
-| GET | `/api/candidates` | Liste synthétique des candidats | ✅ |
-| GET | `/api/candidate/:id` | Détail complet | ✅ |
-| DELETE | `/api/candidate/:id` | Suppression | ✅ |
-| GET | `/api/health` | Statut + backend de stockage actif | ✅ |
+| POST | `/api/upload-cv` | Upload PDF (multipart `cv`) → analyse complète | Public, rate-limité (5/h/IP) |
+| POST | `/api/candidate/:id/ask` | Q&A sur un candidat (`{ question }`) | `Bearer ADMIN_TOKEN` |
+| GET | `/api/candidates` | Liste synthétique des candidats | `Bearer ADMIN_TOKEN` |
+| GET | `/api/candidate/:id` | Détail complet | `Bearer ADMIN_TOKEN` |
+| DELETE | `/api/candidate/:id` | Suppression | `Bearer ADMIN_TOKEN` |
+| GET | `/api/health` | Statut + backend de stockage actif | Public |
+
+Codes d'erreur d'upload : `400` requête/signature invalide · `413` fichier ou corps trop gros ·
+`422` PDF chiffré / sans couche texte / illisible · `429` quota d'IP · `502` service d'analyse
+indisponible · `500` générique (identifiant de corrélation renvoyé, détail uniquement côté journaux).
 
 ---
 
@@ -131,7 +146,7 @@ CV de test réel : `resumes/Sophie_Martin_Marketing.pdf` (format français : âg
 ```bash
 pnpm typecheck
 pnpm build
-pnpm test   # 29 tests vitest — voir frontend/tests/README.md
+pnpm test   # 70 tests vitest — voir frontend/tests/README.md
 ```
 
 ---
@@ -147,6 +162,9 @@ Le `.env` est copié une fois sur le VPS, jamais en CI.
 
 ```
 agentrecruteur.fr, www.agentrecruteur.fr {
+  request_body {
+    max_size 11MB           # première barrière avant Next.js (413 côté app au-delà)
+  }
   reverse_proxy 127.0.0.1:3004   # app Next.js mono-port (UI + API)
 }
 ```
@@ -155,14 +173,16 @@ agentrecruteur.fr, www.agentrecruteur.fr {
 
 ## Évolutions / chantiers ouverts
 
+- **Authentification réelle (Clerk)** : remplacer le garde-fou `ADMIN_TOKEN` par des sessions
+  multi-recruteurs ; le champ `ownerId` et le filtrage par propriétaire sont déjà en place.
+- **Quota par compte** : remplacer le rate-limit par IP de l'upload par un quota lié au compte authentifié.
+- **OCR** : les PDF scannés sont aujourd'hui refusés en 422 (aucune couche texte) ; l'OCR est un chantier séparé.
 - **Persistance active en prod** : ajouter l'IP du droplet dans l'IP Access List Atlas — bloquant, cf. `TODO.md` §2.
-- Ajouter de vraies sessions multi-recruteurs (auth sur invitation) quand le produit se paie.
 - Analytics : scoring comparatif, recherche full-text sur les CV (index textes déjà déclarés).
-- Montées mineures de versions (Next 16, LangChain 0.5) différées volontairement (breaking changes sans gain démo).
 
 ---
 
-## Contact & accès démo
+## Contact & accès
 
 - Auteur : Laurent Knauss (créateur) — les accès de test s'obtiennent sur demande.
-- Démonstration publique : <https://agentrecruteur.fr> (mode démo protégé).
+- Démonstration publique : <https://agentrecruteur.fr>.

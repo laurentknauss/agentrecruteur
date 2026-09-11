@@ -1,5 +1,6 @@
 // StructuringWorker - Transforms raw resume text into structured JSON using GPT-5.5
 import createOpenAIClient, { runGPT5Model } from '../clients/openaiClient.js';
+import { MAX_RESUME_TEXT_CHARS } from '../limits.js';
 
 /**
  * Resume Structure Schema
@@ -48,6 +49,13 @@ export async function structureResumeText(resumeText, jobDescription = null) {
     // Validate input
     if (!resumeText || resumeText.trim().length === 0) {
       throw new Error("Resume text is empty or invalid");
+    }
+
+    // Borne le prompt : au-delà, le texte n'est pas transmis au LLM.
+    if (resumeText.length > MAX_RESUME_TEXT_CHARS) {
+      throw new Error(
+        `Resume text too long: ${resumeText.length} characters (max ${MAX_RESUME_TEXT_CHARS})`
+      );
     }
 
     // Initialize GPT-5 client
