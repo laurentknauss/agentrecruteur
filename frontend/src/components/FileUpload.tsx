@@ -29,8 +29,13 @@ const secondaryVariant = {
 
 export const FileUpload = ({
   onChange,
+  locked = false,
+  onLockedClick,
 }: {
   onChange?: (files: File[]) => void;
+  /** Accès restreint : la zone n'ouvre plus le sélecteur de fichiers. */
+  locked?: boolean;
+  onLockedClick?: () => void;
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,16 +46,25 @@ export const FileUpload = ({
   };
 
   const handleClick = () => {
+    if (locked) {
+      onLockedClick?.();
+      return;
+    }
     fileInputRef.current?.click();
   };
 
   const { getRootProps, isDragActive } = useDropzone({
     multiple: false,
     noClick: true,
+    disabled: locked,
     accept: {
       'application/pdf': ['.pdf']
     },
     onDrop: (accepted) => {
+      if (locked) {
+        onLockedClick?.();
+        return;
+      }
       handleFileChange(accepted)
     },
     onDropRejected: (error) => {

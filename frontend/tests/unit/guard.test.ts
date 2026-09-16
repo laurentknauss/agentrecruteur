@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { authorizeAdmin, optionalOwnerId } from "@/server/auth/guard"
+import { authorizeAdmin, isAppPublic } from "@/server/auth/guard"
 
 function bearerRequest(token?: string): Request {
   const headers = token ? { authorization: `Bearer ${token}` } : undefined
@@ -11,6 +11,7 @@ beforeEach(() => {
   vi.stubEnv("NODE_ENV", "test")
   vi.stubEnv("ADMIN_TOKEN", undefined)
   vi.stubEnv("ADMIN_OWNER_ID", undefined)
+  vi.stubEnv("APP_PUBLIC", undefined)
 })
 
 afterEach(() => {
@@ -66,20 +67,16 @@ describe("authorizeAdmin — garde-fou fail-closed", () => {
   })
 })
 
-describe("optionalOwnerId — ingestion", () => {
-  it("reste anonyme sans jeton", () => {
-    expect(optionalOwnerId(bearerRequest())).toBeNull()
+describe("isAppPublic — ouverture de l'application", () => {
+  it("considère l'application privée quand le drapeau est absent (fail-closed)", () => {
+    expect(isAppPublic()).toBe(false)
   })
 
-  it("rattache l'upload au propriétaire quand un jeton admin accompagne la requête", () => {
-    vi.stubEnv("ADMIN_TOKEN", "secret-admin")
-    vi.stubEnv("ADMIN_OWNER_ID", "agence-1")
-    expect(optionalOwnerId(bearerRequest("secret-admin"))).toBe("agence-1")
-  })
+  it("ouvre l'application uniquement sur APP_PUBLIC=1", () => {
+    vi.stubEnv("APP_PUBLIC", "1")
+    expect(isAppPublic()).toBe(true)
 
-  it("reste anonyme si le jeton fourni est invalide", () => {
-    vi.stubEnv("ADMIN_TOKEN", "secret-admin")
-    vi.stubEnv("ADMIN_OWNER_ID", "agence-1")
-    expect(optionalOwnerId(bearerRequest("mauvais"))).toBeNull()
+    vi.stubEnv("APP_PUBLIC", "true")
+    expect(isAppPublic()).toBe(false)
   })
 })

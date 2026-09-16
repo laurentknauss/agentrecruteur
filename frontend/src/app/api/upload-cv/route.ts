@@ -4,7 +4,7 @@ import { processPDFBuffer, validatePDFBuffer } from "@/server/pdf"
 import { analyzeResume } from "@/server/workers/comprehensiveResumeAnalyzer"
 import { toAnalysisError } from "@/server/errors"
 import { errorResponse } from "@/server/http"
-import { optionalOwnerId } from "@/server/auth/guard"
+import { authorizeAdmin, isAppPublic } from "@/server/auth/guard"
 import { checkRateLimit, clientIp } from "@/server/rate-limit"
 import { MAX_BODY_BYTES, MAX_UPLOAD_BYTES, UPLOAD_RATE_LIMIT } from "@/server/limits.js"
 import { v4 as uuidv4 } from "uuid"
@@ -41,6 +41,15 @@ function uploadPayload(
 }
 
 export async function POST(request: Request) {
+  // Accès : application privée par défaut. En mode privé, un jeton admin est exigé
+  // (401) — et sans ADMIN_TOKEN configuré, la route refuse en 503 (fail-closed)
+  // au lieu d'accepter un dépôt anonyme.
+  const appPublic = isAppPublic()
+  const auth = appPublic
+    ? ({ ok: true, auth: { ownerId: null } } as const)
+    : authorizeAdmin(request)
+  if (!auth.ok) return auth.response
+
   // Pré-contrôle : rejeter un corps trop gros AVANT de le tamponner en mémoire.
   const declaredLength = request.headers.get("content-length")
   if (
@@ -54,13 +63,16 @@ export async function POST(request: Request) {
     )
   }
 
-  // Amortisseur : quelques dépôts par IP et par heure (un quota par compte viendra ensuite).
-  const quota = checkRateLimit(clientIp(request), UPLOAD_RATE_LIMIT)
-  if (!quota.allowed) {
-    return Response.json(
-      { error: "Trop de dépôts de CV depuis cette adresse. Réessayez plus tard." },
-      { status: 429, headers: { "Retry-After": String(quota.retryAfterSeconds) } },
-    )
+  // Amortisseur anti-abus : uniquement en accès public — le propriétaire authentifié
+  // n'est pas quoté (le quota vise l'ingestion anonyme, pas l'usage normal).
+  if (appPublic) {
+    const quota = checkRateLimit(clientIp(request), UPLOAD_RATE_LIMIT)
+    if (!quota.allowed) {
+      return Response.json(
+        { error: "Trop de dépôts de CV depuis cette adresse. Réessayez plus tard." },
+        { status: 429, headers: { "Retry-After": String(quota.retryAfterSeconds) } },
+      )
+    }
   }
 
   let form: FormData
@@ -92,7 +104,7 @@ export async function POST(request: Request) {
 
   try {
     const store = await getRepository()
-    const ownerId = optionalOwnerId(request)
+    const ownerId = auth.auth.ownerId
     const fingerprint = createHash("sha256").update(buffer).digest("hex")
 
     // Déduplication : un CV déjà analysé est renvoyé tel quel, sans nouvel appel LLM.

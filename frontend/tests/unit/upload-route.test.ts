@@ -60,10 +60,17 @@ function pdfFile(size = 2048, name = "cv.pdf"): File {
   return new File([bytes], name, { type: "application/pdf" })
 }
 
-function uploadRequest(file?: File, { field = "cv" } = {}): Request {
+function uploadRequest(
+  file?: File,
+  { field = "cv", token }: { field?: string; token?: string } = {},
+): Request {
   const form = new FormData()
   if (file) form.append(field, file)
-  return new Request("http://test.local/api/upload-cv", { method: "POST", body: form })
+  return new Request("http://test.local/api/upload-cv", {
+    method: "POST",
+    body: form,
+    headers: token ? { authorization: `Bearer ${token}` } : undefined,
+  })
 }
 
 const ENV = { ...process.env }
@@ -81,6 +88,7 @@ beforeEach(async () => {
   analyzeResumeMock.mockResolvedValue(ANALYSIS)
   delete process.env.ADMIN_TOKEN
   delete process.env.ADMIN_OWNER_ID
+  delete process.env.APP_PUBLIC
 })
 
 afterEach(() => {
@@ -223,7 +231,9 @@ describe("POST /api/upload-cv — analyse et persistence", () => {
     expect(await candidateStore.count()).toBe(1)
   })
 
-  it("limite les dépôts par IP (429 puis en-tête Retry-After)", async () => {
+  it("limite les dépôts par IP en accès public (429 puis en-tête Retry-After)", async () => {
+    process.env.APP_PUBLIC = "1"
+
     for (let i = 0; i < 5; i += 1) {
       const response = await POST(uploadRequest(pdfFile()))
       expect(response.status).toBe(200)
@@ -232,5 +242,48 @@ describe("POST /api/upload-cv — analyse et persistence", () => {
     const blocked = await POST(uploadRequest(pdfFile()))
     expect(blocked.status).toBe(429)
     expect(Number(blocked.headers.get("retry-after"))).toBeGreaterThan(0)
+  })
+})
+
+describe("POST /api/upload-cv — accès", () => {
+  it("refuse (503) un dépôt anonyme en production sans ADMIN_TOKEN", async () => {
+    vi.stubEnv("NODE_ENV", "production")
+
+    const response = await POST(uploadRequest(pdfFile()))
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({ code: "ADMIN_TOKEN_MISSING" })
+    expect(processPDFBufferMock).not.toHaveBeenCalled()
+    expect(analyzeResumeMock).not.toHaveBeenCalled()
+  })
+
+  it("refuse (401) un dépôt anonyme en production quand ADMIN_TOKEN est configuré", async () => {
+    vi.stubEnv("NODE_ENV", "production")
+    process.env.ADMIN_TOKEN = "secret-admin"
+
+    const response = await POST(uploadRequest(pdfFile()))
+
+    expect(response.status).toBe(401)
+    expect(analyzeResumeMock).not.toHaveBeenCalled()
+  })
+
+  it("rattache le dépôt à son propriétaire quand le jeton admin accompagne la requête", async () => {
+    vi.stubEnv("NODE_ENV", "production")
+    process.env.ADMIN_TOKEN = "secret-admin"
+    process.env.ADMIN_OWNER_ID = "agence-1"
+
+    const response = await POST(uploadRequest(pdfFile(), { token: "secret-admin" }))
+    expect(response.status).toBe(200)
+
+    const body = await response.json()
+    expect((await candidateStore.get(body.candidateId))?.ownerId).toBe("agence-1")
+  })
+
+  it("autorise l'ingestion anonyme quand l'application est publique (APP_PUBLIC=1)", async () => {
+    vi.stubEnv("NODE_ENV", "production")
+    process.env.APP_PUBLIC = "1"
+
+    const response = await POST(uploadRequest(pdfFile()))
+    expect(response.status).toBe(200)
   })
 })

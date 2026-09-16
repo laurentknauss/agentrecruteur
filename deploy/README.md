@@ -90,7 +90,7 @@ cp -r public      .next/standalone/frontend/public
 cd ..
 
 # 3. Envoi du bundle (app + store embarqué)
-cd /home/laurent/professionnel/agentrecruteur
+cd /home/laurent/professionnel/AI/agentrecruteur
 rsync -az --delete frontend/.next/standalone/frontend/ \
   root@209.38.207.109:/srv/agentrecruteur/frontend/
 rsync -az --delete frontend/.next/standalone/node_modules/ \
@@ -108,32 +108,39 @@ ssh root@209.38.207.109 'systemctl restart agentrecruteur.service'
 - Le `.env.local` du serveur (`/srv/agentrecruteur/.env.local`) n'est **jamais** touché par ces
   rsync (hors des chemins synchronisés) ; il est lu par systemd via `EnvironmentFile`.
 
-## 6) Protection des crédits et des données (post-verrou démo)
+## 6) Protection des crédits et des données (application privée par défaut)
 
-- Plus aucun verrou démo : `POST /api/upload-cv` et `POST /api/candidate/:id/ask` sont actifs en
-  production. Les coûts sont contenus autrement : bornes d'entrée (10 Mo, 20 pages, 60 000
-  caractères), **rate-limit 5 dépôts/h/IP**, et **déduplication sha256** (un CV déjà analysé n'est
-  jamais repayé).
-- Routes de données (`/api/candidates`, `/api/candidate/:id`, `/api/candidate/:id/ask`) :
-  `Authorization: Bearer ${ADMIN_TOKEN}` obligatoire. `ADMIN_TOKEN` **absent** en production →
-  **503** (fail-closed). `ADMIN_OWNER_ID` restreint les lectures/suppressions au propriétaire.
-- L'accès à l'upload depuis l'UI reste public (dépôt de CV par un candidat) : ne pas ouvrir
-  l'interface d'administration sans le jeton.
+- **L'application est privée par défaut** (`APP_PUBLIC` non défini = fail-closed) : la landing reste
+  publique, l'ingestion de CV ne l'est pas.
+- `POST /api/upload-cv` exige `Authorization: Bearer ${ADMIN_TOKEN}` — **401** si le jeton est
+  absent ou erroné, **503** si `ADMIN_TOKEN` n'est pas configuré. Idem pour
+  `POST /api/candidate/:id/ask`.
+- `GET /api/candidates` et `GET/DELETE /api/candidate/:id` : même garde-fou ;
+  `ADMIN_OWNER_ID` restreint les lectures/suppressions au propriétaire.
+- Côté UI, la zone d'upload est verrouillée (clic **et** drag&drop) et affiche le popup « Accès démo
+  protégé » (contact LinkedIn). L'état vient de `APP_PUBLIC`, lu **au runtime** (page
+  `force-dynamic`) : UI et API ne peuvent pas diverger, et aucun `NEXT_PUBLIC_*` n'est à maintenir
+  dans le build.
+- Ouvrir l'application à tous = `APP_PUBLIC=1` dans `/srv/agentrecruteur/.env.local` +
+  `systemctl restart agentrecruteur.service` — **sans rebuild**. Les coûts sont alors contenus par
+  les bornes d'entrée (10 Mo, 20 pages, 60 000 caractères), le **rate-limit 5 dépôts/h/IP** (mode
+  public uniquement) et la **déduplication sha256** (un CV déjà analysé n'est jamais repayé).
 - Le limiteur de corps du reverse proxy (`request_body { max_size 11MB }`) double le pré-contrôle
   applicatif `Content-Length` (413).
 
 ## 7) Variables d'environnement
 
 `frontend/.env.example` liste les clés ; côté serveur `/srv/agentrecruteur/.env.local` contient :
-`OPENAI_API_KEY`, `GPT_MODEL`, `MONGODB_ATLAS_URI`, `MONGODB_DATABASE`, `ADMIN_TOKEN`, `ADMIN_OWNER_ID`.
+`OPENAI_API_KEY`, `GPT_MODEL`, `MONGODB_ATLAS_URI`, `MONGODB_DATABASE`, `ADMIN_TOKEN`,
+`ADMIN_OWNER_ID`, et `APP_PUBLIC` (optionnel : `=1` ouvre l'ingestion au public ; absent = privé).
 
 ## 8) Vérifications post-déploiement
 
 ```bash
 curl -s https://agentrecruteur.fr/api/health            # status OK (storage: mongodb attendu — cf. TODO.md §2)
-curl -s -o /dev/null -w '%{http_code}\n' https://agentrecruteur.fr/                     # 200
+curl -s -o /dev/null -w '%{http_code}\n' https://agentrecruteur.fr/                     # 200 (landing publique)
 curl -s -o /dev/null -w '%{http_code}\n' https://agentrecruteur.fr/api/candidates        # 401 sans jeton (503 si ADMIN_TOKEN absent)
-curl -s -o /dev/null -w '%{http_code}\n' -X POST https://agentrecruteur.fr/api/upload-cv # 400 (requête sans fichier)
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://agentrecruteur.fr/api/upload-cv # 401 sans jeton (503 si ADMIN_TOKEN absent) — jamais 200
 ssh root@209.38.207.109 'systemctl is-active agentrecruteur.service; systemctl show -p NRestarts --value agentrecruteur.service'
 ```
 

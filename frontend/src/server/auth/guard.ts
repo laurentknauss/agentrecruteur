@@ -71,11 +71,16 @@ export function authorizeAdmin(request: Request): AuthResult {
 }
 
 /**
- * Propriétaire associé à une requête d'ingestion : renseigné uniquement lorsqu'un
- * jeton admin valide accompagne l'upload. En l'absence de contexte d'authentification,
- * le candidat est enregistré sans propriétaire (anonyme) — Clerk remplacera ce mécanisme.
+ * L'application est-elle ouverte aux visiteurs ?
+ *
+ * Source unique de la décision « app publique » : le serveur s'en sert pour
+ * autoriser l'ingestion anonyme, l'UI pour afficher l'état verrouillé (popup
+ * LinkedIn). Un seul drapeau, deux consommateurs — aucun `NEXT_PUBLIC_*` à
+ * désynchroniser du serveur.
+ *
+ * Défaut : NON (fail-closed). Il faut poser explicitement `APP_PUBLIC=1` pour
+ * ouvrir l'application ; l'oublier ferme l'accès au lieu de l'ouvrir.
  */
-export function optionalOwnerId(request: Request): string | null {
-  const result = authorizeAdmin(request)
-  return result.ok ? result.auth.ownerId : null
+export function isAppPublic(): boolean {
+  return process.env.APP_PUBLIC === "1"
 }
