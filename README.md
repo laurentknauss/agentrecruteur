@@ -4,6 +4,10 @@ Assistant IA de pré-sélection de CV pour le marché français. Un recruteur d�
 le système extrait, structure, analyse (compétences, expérience, screening), attribue un score et
 permet un Q&A sur le candidat.
 
+![Page d'accueil de CV Inspector — dépôt d'un CV PDF pour analyse](docs/landing-page.webp)
+
+*Démonstration : dépôt d'un CV, analyse en quelques secondes, score et Q&A sur le candidat.*
+
 > Ce dépôt est public dans un but de **revue technique** (CTO / direction technique / prospects).
 > Vous trouverez ici les décisions d'architecture, la posture sécurité et les garde-fous d'exploitation.
 
