@@ -117,14 +117,14 @@ pnpm dev   # http://localhost:3000
 > Stockage : le serveur tente MongoDB Atlas puis bascule en mémoire (`GET /api/health` → `storage: mongodb | memory`).
 > Le repli mémoire **n'est pas figé** : chaque requête retente Atlas, et le mode utilisé est renvoyé
 > dans la réponse d'upload (`storage`). En mémoire, les candidats sont perdus au redémarrage.
-> ⚠️ En production l'état réel est visible via `curl -s https://agentrecruteur.fr/api/health` (cf. `TODO.md` §2).
+> ⚠️ En production l'état réel est visible via `curl -s https://agentrecruteur.fr/api/health`.
 
 ### Données de démo
 
 Il n'y a **pas** de script de seed dans le repo : le jeu de démo (`candidatesCount: 0` en mémoire)
 se remplit en uploadant un CV réel depuis l'UI.
 
-CV de test réel : `resumes/Sophie_Martin_Marketing.pdf` (format français : âge, situation familiale…).
+CV de test réel (non versionné dans ce dépôt) : format français (âge, situation familiale…).
 
 ---
 
@@ -181,7 +181,7 @@ agentrecruteur.fr, www.agentrecruteur.fr {
   multi-recruteurs ; le champ `ownerId` et le filtrage par propriétaire sont déjà en place.
 - **Quota par compte** : remplacer le rate-limit par IP de l'upload par un quota lié au compte authentifié.
 - **OCR** : les PDF scannés sont aujourd'hui refusés en 422 (aucune couche texte) ; l'OCR est un chantier séparé.
-- **Persistance active en prod** : ajouter l'IP du droplet dans l'IP Access List Atlas — bloquant, cf. `TODO.md` §2.
+- **Persistance active en prod** : ajouter l'IP du droplet dans l'IP Access List Atlas — bloquant.
 - Analytics : scoring comparatif, recherche full-text sur les CV (index textes déjà déclarés).
 
 ---

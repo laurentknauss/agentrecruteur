@@ -137,7 +137,7 @@ ssh root@209.38.207.109 'systemctl restart agentrecruteur.service'
 ## 8) Vérifications post-déploiement
 
 ```bash
-curl -s https://agentrecruteur.fr/api/health            # status OK (storage: mongodb attendu — cf. TODO.md §2)
+curl -s https://agentrecruteur.fr/api/health            # status OK (storage: mongodb attendu)
 curl -s -o /dev/null -w '%{http_code}\n' https://agentrecruteur.fr/                     # 200 (landing publique)
 curl -s -o /dev/null -w '%{http_code}\n' https://agentrecruteur.fr/api/candidates        # 401 sans jeton (503 si ADMIN_TOKEN absent)
 curl -s -o /dev/null -w '%{http_code}\n' -X POST https://agentrecruteur.fr/api/upload-cv # 401 sans jeton (503 si ADMIN_TOKEN absent) — jamais 200

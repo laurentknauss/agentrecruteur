@@ -26,3 +26,10 @@ coverage/
 
 # Braintrust (config locale wizard — contient une clé API, jamais committer)
 .braintrust.json
+
+# Docs locales (jamais publiees)
+AGENTS.md
+TODO.md
+dummy-cv.md
+Workflow_And_Agents.pdf
+resumes/
