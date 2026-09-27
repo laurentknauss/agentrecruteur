@@ -14,9 +14,5 @@ attribue un score et répond aux questions posées sur le candidat.
 - **Exploitation** : données candidats servies derrière un jeton (fail-closed en
   production), bornes d'ingestion, déduplication des CV par empreinte SHA-256.
 
-```bash
-pnpm install && pnpm dev   # http://localhost:3000
-```
-
 > Dépôt public dans un but de **revue technique** : décisions d'architecture, posture
 > sécurité et garde-fous d'exploitation.
