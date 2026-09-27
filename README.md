@@ -1,9 +1,5 @@
 # 🚧 CV Inspector — Agent Recruteur
 
-**Refonte en cours.** Le dépôt est en pleine refonte : le sélecteur multi-candidats par
-offre (graphe LangGraph) avance plus vite que cette page. Ce README sera complété à la
-sortie de la refonte.
-
 Assistant IA de pré-sélection de CV pour le marché français : un recruteur dépose un CV
 en PDF, l'agent l'extrait, le structure (compétences, expériences, formation), lui
 attribue un score et répond aux questions posées sur le candidat.
