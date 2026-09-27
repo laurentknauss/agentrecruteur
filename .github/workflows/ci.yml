@@ -1,7 +1,7 @@
 # CI/CD — AgentRecruteur (miroir du process BullionRadar adapté au monorepo)
 #
 # Philosophie : security + typecheck + build + audit sur tout push/PR.
-# Aucun déploiement automatique (déploiement VPS via rsync + systemd, cf. deploy/README.md).
+# Aucun déploiement automatique (build local → rsync → systemd, hors CI).
 # La branche main est protégée : PR obligatoire + checks verts requis.
 
 name: CI
